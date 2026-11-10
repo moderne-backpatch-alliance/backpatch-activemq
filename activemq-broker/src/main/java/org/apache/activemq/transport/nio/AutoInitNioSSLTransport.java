@@ -172,7 +172,9 @@ public class AutoInitNioSSLTransport extends NIOSSLTransport {
                 if (!plain.hasRemaining()) {
                     int readCount = secureRead(plain);
 
-                    if (readCount == 0) {
+                    // No data read: the connection may be waiting on a handshake update (TLSv1.3
+                    // KeyUpdate, TLSv1.2 renegotiation), so process it and read again before breaking.
+                    if (readCount == 0 && !handleHandshakeUpdate()) {
                         break;
                     }
 
@@ -186,7 +188,8 @@ public class AutoInitNioSSLTransport extends NIOSSLTransport {
                     readSize.addAndGet(readCount);
                 }
 
-                if (status == SSLEngineResult.Status.OK && handshakeStatus != SSLEngineResult.HandshakeStatus.NEED_UNWRAP) {
+                // Handshake renegotiation can run alongside application data, so do not gate this on NEED_UNWRAP.
+                if (status == SSLEngineResult.Status.OK && plain.hasRemaining()) {
                     processCommand(plain);
                     //we have received enough bytes to detect the protocol
                     if (receiveCounter >= 8) {
