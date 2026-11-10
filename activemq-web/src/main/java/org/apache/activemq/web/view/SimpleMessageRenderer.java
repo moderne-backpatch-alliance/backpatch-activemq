@@ -26,6 +26,7 @@ import javax.jms.QueueBrowser;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.activemq.web.util.ViewUtils;
 
 /**
  * A simple rendering of the contents of a queue appear as a list of message
@@ -35,11 +36,12 @@ import javax.servlet.http.HttpServletResponse;
  */
 public class SimpleMessageRenderer implements MessageRenderer {
 
-    private String contentType = "text/xml";
+    protected static final String DEFAULT_CONTENT_TYPE = "text/xml";
+
     private int maxMessages;
 
     public void renderMessages(HttpServletRequest request, HttpServletResponse response, QueueBrowser browser) throws IOException, JMSException, ServletException {
-        // lets use XML by default
+        // XML is used by default unless a child class overrides this method
         response.setContentType(getContentType());
         PrintWriter writer = response.getWriter();
         printHeader(writer, browser, request);
@@ -56,7 +58,7 @@ public class SimpleMessageRenderer implements MessageRenderer {
     public void renderMessage(PrintWriter writer, HttpServletRequest request, HttpServletResponse response, QueueBrowser browser, Message message) throws JMSException, ServletException {
         // lets just write the message IDs for now
         writer.print("<message id='");
-        writer.print(message.getJMSMessageID());
+        writer.print(ViewUtils.escapeXml(message.getJMSMessageID()));
         writer.println("'/>");
     }
 
@@ -71,11 +73,7 @@ public class SimpleMessageRenderer implements MessageRenderer {
     }
 
     public String getContentType() {
-        return contentType;
-    }
-
-    public void setContentType(String contentType) {
-        this.contentType = contentType;
+        return DEFAULT_CONTENT_TYPE;
     }
 
     // Implementation methods
@@ -84,12 +82,12 @@ public class SimpleMessageRenderer implements MessageRenderer {
     protected void printHeader(PrintWriter writer, QueueBrowser browser, HttpServletRequest request) throws IOException, JMSException, ServletException {
         writer.println("");
         writer.print("<messages queue='");
-        writer.print(browser.getQueue());
+        writer.print(ViewUtils.escapeXml(String.valueOf(browser.getQueue())));
         writer.print("'");
         String selector = browser.getMessageSelector();
         if (selector != null) {
             writer.print(" selector='");
-            writer.print(selector);
+            writer.print(ViewUtils.escapeXml(selector));
             writer.print("'");
         }
         writer.println(">");
