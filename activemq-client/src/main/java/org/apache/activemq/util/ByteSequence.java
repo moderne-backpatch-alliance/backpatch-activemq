@@ -17,6 +17,8 @@
 
 package org.apache.activemq.util;
 
+import java.util.Arrays;
+
 public class ByteSequence {
 
     public byte[] data;
@@ -101,5 +103,9 @@ public class ByteSequence {
             }
         }
         return -1;
+    }
+
+    public byte[] toArray() {
+        return Arrays.copyOfRange(getData(), getOffset(), getLength());
     }
 }

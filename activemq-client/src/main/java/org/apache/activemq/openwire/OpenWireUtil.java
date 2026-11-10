@@ -16,6 +16,9 @@
  */
 package org.apache.activemq.openwire;
 
+import java.io.IOException;
+import org.apache.activemq.util.IOExceptionSupport;
+
 public class OpenWireUtil {
 
     /**
@@ -27,6 +30,30 @@ public class OpenWireUtil {
     public static void validateIsThrowable(Class<?> clazz) {
         if (!Throwable.class.isAssignableFrom(clazz)) {
             throw new IllegalArgumentException("Class " + clazz + " is not assignable to Throwable");
+        }
+    }
+
+    public static void validateBufferSize(OpenWireFormat wireFormat, int size) throws IOException {
+        validateLessThanFrameSize(wireFormat, size);
+
+        // Also needed when no frame size is known, as with sizePrefixDisabled.
+        if (size > wireFormat.getMaxFrameSize()) {
+            throw IOExceptionSupport.createFrameSizeException(size,  wireFormat.getMaxFrameSize());
+        }
+    }
+
+    private static void validateLessThanFrameSize(OpenWireFormat wireFormat, int size)
+        throws IOException {
+        final OpenWireFormat.MarshallingContext context = wireFormat.getMarshallingContext();
+        if (context == null || context.getFrameSize() < 0) {
+            return;
+        }
+
+        context.increment(size);
+
+        if (context.getEstimatedAllocated() > context.getFrameSize()) {
+            throw IOExceptionSupport.createFrameSizeBufferException(
+                context.getEstimatedAllocated(), context.getFrameSize());
         }
     }
 }
