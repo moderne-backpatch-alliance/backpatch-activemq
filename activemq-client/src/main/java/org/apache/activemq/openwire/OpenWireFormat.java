@@ -69,6 +69,7 @@ public final class OpenWireFormat implements WireFormat {
 
     // A thread local so that the DataStreamMarshaller interface and its generated implementations stay as they are.
     private final ThreadLocal<MarshallingContext> marshallingContext = new ThreadLocal<MarshallingContext>();
+    private static final ThreadLocal<OpenWireFormat> UNMARSHALLING = new ThreadLocal<OpenWireFormat>();
 
     public OpenWireFormat() {
         this(DEFAULT_STORE_VERSION);
@@ -360,12 +361,22 @@ public final class OpenWireFormat implements WireFormat {
                 throw new IOException("Unknown data type: " + dataType);
             }
             Object data = dsm.createObject();
-            if (this.tightEncodingEnabled) {
-                BooleanStream bs = new BooleanStream();
-                bs.unmarshal(dis);
-                dsm.tightUnmarshal(this, data, dis, bs);
-            } else {
-                dsm.looseUnmarshal(this, data, dis);
+            OpenWireFormat outer = UNMARSHALLING.get();
+            UNMARSHALLING.set(this);
+            try {
+                if (this.tightEncodingEnabled) {
+                    BooleanStream bs = new BooleanStream();
+                    bs.unmarshal(dis);
+                    dsm.tightUnmarshal(this, data, dis, bs);
+                } else {
+                    dsm.looseUnmarshal(this, data, dis);
+                }
+            } finally {
+                if (outer == null) {
+                    UNMARSHALLING.remove();
+                } else {
+                    UNMARSHALLING.set(outer);
+                }
             }
             return data;
         } else {
@@ -675,6 +686,20 @@ public final class OpenWireFormat implements WireFormat {
 
     MarshallingContext getMarshallingContext() {
         return marshallingContext.get();
+    }
+
+    /**
+     * The wire format unmarshalling a command on this thread, or one with default settings when none is.
+     *
+     * @return the wire format whose frame limits apply to buffers read on this thread
+     */
+    public static OpenWireFormat unmarshallingOnCurrentThread() {
+        OpenWireFormat current = UNMARSHALLING.get();
+        return current != null ? current : DefaultHolder.INSTANCE;
+    }
+
+    private static final class DefaultHolder {
+        static final OpenWireFormat INSTANCE = new OpenWireFormat();
     }
 
     static class MarshallingContext {

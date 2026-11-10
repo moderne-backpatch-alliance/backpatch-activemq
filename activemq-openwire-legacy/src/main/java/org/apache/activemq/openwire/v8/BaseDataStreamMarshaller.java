@@ -409,6 +409,13 @@ public abstract class BaseDataStreamMarshaller implements DataStreamMarshaller {
         }
     }
 
+    // Signature from before CVE-2025-27533, kept for subclasses: the size is checked against the
+    // frame of the OpenWireFormat unmarshalling on this thread, as the overload below does.
+    @Deprecated
+    protected byte[] tightUnmarshalByteArray(DataInput dataIn, BooleanStream bs) throws IOException {
+        return tightUnmarshalByteArray(OpenWireFormat.unmarshallingOnCurrentThread(), dataIn, bs);
+    }
+
     protected byte[] tightUnmarshalByteArray(OpenWireFormat wireFormat, DataInput dataIn, BooleanStream bs) throws IOException {
         byte rc[] = null;
         if (bs.readBoolean()) {
@@ -435,6 +442,13 @@ public abstract class BaseDataStreamMarshaller implements DataStreamMarshaller {
             dataOut.writeInt(data.getLength());
             dataOut.write(data.getData(), data.getOffset(), data.getLength());
         }
+    }
+
+    // Signature from before CVE-2025-27533, kept for subclasses: the size is checked against the
+    // frame of the OpenWireFormat unmarshalling on this thread, as the overload below does.
+    @Deprecated
+    protected ByteSequence tightUnmarshalByteSequence(DataInput dataIn, BooleanStream bs) throws IOException {
+        return tightUnmarshalByteSequence(OpenWireFormat.unmarshallingOnCurrentThread(), dataIn, bs);
     }
 
     protected ByteSequence tightUnmarshalByteSequence(OpenWireFormat wireFormat, DataInput dataIn, BooleanStream bs) throws IOException {
@@ -618,6 +632,13 @@ public abstract class BaseDataStreamMarshaller implements DataStreamMarshaller {
         }
     }
 
+    // Signature from before CVE-2025-27533, kept for subclasses: the size is checked against the
+    // frame of the OpenWireFormat unmarshalling on this thread, as the overload below does.
+    @Deprecated
+    protected byte[] looseUnmarshalByteArray(DataInput dataIn) throws IOException {
+        return looseUnmarshalByteArray(OpenWireFormat.unmarshallingOnCurrentThread(), dataIn);
+    }
+
     protected byte[] looseUnmarshalByteArray(OpenWireFormat wireFormat, DataInput dataIn) throws IOException {
         byte rc[] = null;
         if (dataIn.readBoolean()) {
@@ -636,6 +657,13 @@ public abstract class BaseDataStreamMarshaller implements DataStreamMarshaller {
             dataOut.writeInt(data.getLength());
             dataOut.write(data.getData(), data.getOffset(), data.getLength());
         }
+    }
+
+    // Signature from before CVE-2025-27533, kept for subclasses: the size is checked against the
+    // frame of the OpenWireFormat unmarshalling on this thread, as the overload below does.
+    @Deprecated
+    protected ByteSequence looseUnmarshalByteSequence(DataInput dataIn) throws IOException {
+        return looseUnmarshalByteSequence(OpenWireFormat.unmarshallingOnCurrentThread(), dataIn);
     }
 
     protected ByteSequence looseUnmarshalByteSequence(OpenWireFormat wireFormat, DataInput dataIn) throws IOException {
