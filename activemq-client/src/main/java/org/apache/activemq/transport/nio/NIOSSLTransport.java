@@ -36,6 +36,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
+import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
@@ -263,10 +264,11 @@ public class NIOSSLTransport extends NIOTransport {
                 }
 
                 if (!plain.hasRemaining()) {
-
                     int readCount = secureRead(plain);
 
-                    if (readCount == 0) {
+                    // With no data read, a TLSv1.3 KeyUpdate or a TLSv1.2 renegotiation may be
+                    // waiting on us. Process it and read again; stop only when there is none.
+                    if (readCount == 0 && !handleHandshakeUpdate()) {
                         break;
                     }
 
@@ -280,7 +282,9 @@ public class NIOSSLTransport extends NIOTransport {
                     receiveCounter += readCount;
                 }
 
-                if (status == SSLEngineResult.Status.OK && handshakeStatus != SSLEngineResult.HandshakeStatus.NEED_UNWRAP) {
+                // Renegotiation can run alongside application data, so process what was read
+                // even when the handshake status says NEED_UNWRAP.
+                if (status == SSLEngineResult.Status.OK && plain.hasRemaining()) {
                     processCommand(plain);
                 }
             }
@@ -421,6 +425,30 @@ public class NIOSSLTransport extends NIOTransport {
         plain.flip();
 
         return plain.remaining();
+    }
+
+    // Returns true if the handshake status was updated
+    protected boolean handleHandshakeUpdate() throws IOException {
+        switch (handshakeStatus) {
+            // The empty write is needed: it flushes pending handshake data
+            case NEED_WRAP:
+                ((NIOOutputStream) buffOut).write(ByteBuffer.allocate(0));
+                handshakeStatus = sslEngine.getHandshakeStatus();
+                return true;
+            case NEED_TASK:
+                Runnable task;
+                while ((task = sslEngine.getDelegatedTask()) != null) {
+                    task.run();
+                }
+                handshakeStatus = sslEngine.getHandshakeStatus();
+                return true;
+            case FINISHED:
+                sslSession = sslEngine.getSession();
+                handshakeStatus = sslEngine.getHandshakeStatus();
+                return true;
+            default:
+                return false;
+        }
     }
 
     protected void doHandshake() throws Exception {
