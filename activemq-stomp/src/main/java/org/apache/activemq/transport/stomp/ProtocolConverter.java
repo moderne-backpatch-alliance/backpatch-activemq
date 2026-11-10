@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.jms.JMSException;
 
+import org.apache.activemq.ActiveMQMessageFormatException;
 import org.apache.activemq.ActiveMQPrefetchPolicy;
 import org.apache.activemq.advisory.AdvisorySupport;
 import org.apache.activemq.broker.BrokerContext;
@@ -63,6 +64,7 @@ import org.apache.activemq.command.ShutdownInfo;
 import org.apache.activemq.command.TransactionId;
 import org.apache.activemq.command.TransactionInfo;
 import org.apache.activemq.util.ByteArrayOutputStream;
+import org.apache.activemq.util.ExceptionUtils;
 import org.apache.activemq.util.FactoryFinder;
 import org.apache.activemq.util.IOExceptionSupport;
 import org.apache.activemq.util.IdGenerator;
@@ -894,6 +896,11 @@ public class ProtocolConverter {
                 } catch (Exception ex) {
                     if (ackId != null) {
                         this.pedingAcks.remove(ackId);
+                    }
+                    // TransportConnection acks an unreadable message as poison only if this reaches it.
+                    ActiveMQMessageFormatException formatError = ExceptionUtils.createMessageFormatException(ex);
+                    if (formatError != null) {
+                        throw formatError;
                     }
                 }
             }
