@@ -115,7 +115,8 @@ public class FrameSizeLimitedFilterInputStream extends InputStream {
 
         final int read = stream.read();
 
-        reduceAvailable(1);
+        // if -1 then the stream is done
+        reduceAvailable(read >= 0 ? 1 : -1);
 
         return read;
     }
@@ -129,11 +130,25 @@ public class FrameSizeLimitedFilterInputStream extends InputStream {
     public int read(byte[] b, int off, int len) throws IOException {
         Objects.requireNonNull(stream, "The stream wrapper has not been bound to a source input stream");
 
-        // Throws rather than reading up to available bytes: a read loop could otherwise see
-        // end of stream forever and never signal the read past the limit
-        validateAvailable(len, availableBytes);
+        // If length is 0, this method is supposed to just return 0 with
+        // no bytes being read
+        if (len == 0) {
+            return 0;
+        }
 
-        return reduceAvailable(stream.read(b, off, len));
+        final int toRead;
+        if (availableBytes > 0) {
+            // read the smaller of availableBytes or the length
+            // this method allows partial reads less than len
+            toRead = Math.min(len, availableBytes);
+        } else {
+            // we have no more remaining but there is data left so trigger error
+            toRead = 1;
+        }
+
+        validateAvailable(toRead, availableBytes);
+
+        return reduceAvailable(stream.read(b, off, toRead));
     }
 
     @Override
@@ -189,6 +204,10 @@ public class FrameSizeLimitedFilterInputStream extends InputStream {
     }
 
     private int reduceAvailable(int amount) throws IOException {
+        if (amount == -1) {
+            return -1; // Underlying says there are no more bytes
+        }
+
         try {
             availableBytes = Math.subtractExact(availableBytes, amount);
         } catch (ArithmeticException e) {
