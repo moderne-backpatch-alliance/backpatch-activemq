@@ -30,6 +30,7 @@ import org.apache.activemq.command.Message;
 import org.apache.activemq.command.MessageAck;
 import org.apache.activemq.command.MessageDispatchNotification;
 import org.apache.activemq.command.ProducerInfo;
+import org.apache.activemq.openwire.OpenWireFormat;
 import org.apache.activemq.store.MessageStore;
 import org.apache.activemq.usage.MemoryUsage;
 import org.apache.activemq.usage.Usage;
@@ -39,7 +40,7 @@ import org.apache.activemq.util.SubscriptionKey;
  *
  *
  */
-public class DestinationFilter implements Destination {
+public class DestinationFilter implements Destination, Message.MaxInflatedDataSizeAware {
 
     protected final Destination next;
 
@@ -396,6 +397,12 @@ public class DestinationFilter implements Destination {
             Topic topic = (Topic)next;
             topic.deleteSubscription(context, key);
         }
+    }
+
+    @Override
+    public int getMaxInflatedDataSize() {
+        return next instanceof Message.MaxInflatedDataSizeAware
+            ? ((Message.MaxInflatedDataSizeAware) next).getMaxInflatedDataSize() : OpenWireFormat.DEFAULT_MAX_INFLATED_DATA_SIZE;
     }
 
     public Destination getNext() {

@@ -32,6 +32,7 @@ import javax.jms.JMSException;
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.advisory.AdvisorySupport;
 import org.apache.activemq.broker.region.MessageReference;
+import org.apache.activemq.openwire.OpenWireFormat;
 import org.apache.activemq.usage.MemoryUsage;
 import org.apache.activemq.util.ByteArrayInputStream;
 import org.apache.activemq.util.ByteArrayOutputStream;
@@ -103,6 +104,12 @@ public abstract class Message extends BaseCommand implements MarshallAware, Mess
     public static interface MessageDestination {
         int getMinimumMessageSize();
         MemoryUsage getMemoryUsage();
+    }
+
+    // Not a MessageDestination method: source level 1.7 has no default methods, and a new
+    // abstract method would break existing Destination implementations.
+    public static interface MaxInflatedDataSizeAware {
+        int getMaxInflatedDataSize();
     }
 
     public abstract Message copy();
@@ -855,5 +862,16 @@ public abstract class Message extends BaseCommand implements MarshallAware, Mess
     @Override
     public boolean canProcessAsExpired() {
         return processAsExpired.compareAndSet(false, true);
+    }
+
+    public int getMaxInflatedDataSize() {
+        // If this is set then this is on a broker
+        if (regionDestination instanceof MaxInflatedDataSizeAware) {
+            return ((MaxInflatedDataSizeAware) regionDestination).getMaxInflatedDataSize();
+            // connection is set on Clients
+        } else if (connection != null) {
+            return connection.getMaxInflatedDataSize();
+        }
+        return OpenWireFormat.DEFAULT_MAX_INFLATED_DATA_SIZE;
     }
 }

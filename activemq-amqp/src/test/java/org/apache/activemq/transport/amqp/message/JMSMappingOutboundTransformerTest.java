@@ -750,8 +750,27 @@ public class JMSMappingOutboundTransformerTest {
 
     @Test
     public void testConvertCompressedTextMessageCreatesDataSectionBody() throws Exception {
+        ActiveMQTextMessage outbound = createTextMessage("myTextMessageContent", true);
+        ActiveMQConnection connection = Mockito.mock(ActiveMQConnection.class);
+        Mockito.when(connection.isUseCompression()).thenReturn(true);
+        // override to trigger an error with decompression
+        Mockito.when(connection.getMaxInflatedDataSize()).thenReturn(10);
+        outbound.setConnection(connection);
+        try {
+            testConvertCompressedTextMessageCreatesDataSectionBody(outbound);
+            fail("Should have thrown a JMSException");
+        } catch (JMSException expected) {
+        }
+    }
+
+    @Test
+    public void testConvertCompressedTextMessageCreatesDataSectionBodyMaxInflatedSize() throws Exception {
+        ActiveMQTextMessage outbound = createTextMessage("myTextMessageContent", true);
+        testConvertCompressedTextMessageCreatesDataSectionBody(outbound);
+    }
+
+    private void testConvertCompressedTextMessageCreatesDataSectionBody(ActiveMQTextMessage outbound) throws Exception {
         String contentString = "myTextMessageContent";
-        ActiveMQTextMessage outbound = createTextMessage(contentString, true);
         outbound.setShortProperty(JMS_AMQP_ORIGINAL_ENCODING, AMQP_DATA);
         outbound.onSend();
         outbound.storeContent();
@@ -934,6 +953,7 @@ public class JMSMappingOutboundTransformerTest {
         if (compression) {
             ActiveMQConnection connection = Mockito.mock(ActiveMQConnection.class);
             Mockito.when(connection.isUseCompression()).thenReturn(true);
+            Mockito.when(connection.getMaxInflatedDataSize()).thenReturn(Integer.MAX_VALUE);
             message.setConnection(connection);
         }
 
@@ -950,6 +970,7 @@ public class JMSMappingOutboundTransformerTest {
         if (compression) {
             ActiveMQConnection connection = Mockito.mock(ActiveMQConnection.class);
             Mockito.when(connection.isUseCompression()).thenReturn(true);
+            Mockito.when(connection.getMaxInflatedDataSize()).thenReturn(Integer.MAX_VALUE);
             message.setConnection(connection);
         }
 
@@ -966,6 +987,7 @@ public class JMSMappingOutboundTransformerTest {
         if (compression) {
             ActiveMQConnection connection = Mockito.mock(ActiveMQConnection.class);
             Mockito.when(connection.isUseCompression()).thenReturn(true);
+            Mockito.when(connection.getMaxInflatedDataSize()).thenReturn(Integer.MAX_VALUE);
             message.setConnection(connection);
         }
 
@@ -986,6 +1008,7 @@ public class JMSMappingOutboundTransformerTest {
         if (compression) {
             ActiveMQConnection connection = Mockito.mock(ActiveMQConnection.class);
             Mockito.when(connection.isUseCompression()).thenReturn(true);
+            Mockito.when(connection.getMaxInflatedDataSize()).thenReturn(Integer.MAX_VALUE);
             result.setConnection(connection);
         }
 
@@ -1020,6 +1043,7 @@ public class JMSMappingOutboundTransformerTest {
         if (compression) {
             ActiveMQConnection connection = Mockito.mock(ActiveMQConnection.class);
             Mockito.when(connection.isUseCompression()).thenReturn(true);
+            Mockito.when(connection.getMaxInflatedDataSize()).thenReturn(Integer.MAX_VALUE);
             result.setConnection(connection);
         }
 

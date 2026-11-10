@@ -30,9 +30,11 @@ import java.lang.reflect.Field;
 import java.net.SocketTimeoutException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -50,9 +52,17 @@ import javax.jms.TextMessage;
 import javax.management.ObjectName;
 
 import javax.net.ssl.SSLSocket;
+import org.apache.activemq.ActiveMQConnection;
+import org.apache.activemq.broker.Broker;
+import org.apache.activemq.broker.BrokerFilter;
+import org.apache.activemq.broker.BrokerPlugin;
+import org.apache.activemq.broker.BrokerPluginSupport;
+import org.apache.activemq.broker.ConnectionContext;
 import org.apache.activemq.broker.TransportConnector;
 import org.apache.activemq.broker.jmx.BrokerViewMBean;
 import org.apache.activemq.broker.jmx.QueueViewMBean;
+import org.apache.activemq.broker.region.MessageReference;
+import org.apache.activemq.broker.region.Subscription;
 import org.apache.activemq.broker.region.policy.PolicyEntry;
 import org.apache.activemq.broker.region.policy.PolicyMap;
 import org.apache.activemq.command.ActiveMQDestination;
@@ -110,6 +120,8 @@ public class StompTest extends StompTestSupport {
         + "]"
         + "}}";
 
+    final AtomicBoolean sentToDlq = new AtomicBoolean(false);
+
     @Override
     public void setUp() throws Exception {
         // The order of the entries is different when using ibm jdk 5.
@@ -144,6 +156,7 @@ public class StompTest extends StompTestSupport {
         connection.start();
         xstream = new XStream();
         xstream.processAnnotations(SamplePojo.class);
+        sentToDlq.set(false);
     }
 
     @Override
@@ -164,6 +177,26 @@ public class StompTest extends StompTestSupport {
         } finally {
             super.tearDown();
         }
+    }
+
+    @Override
+    protected void addAdditionalPlugins(List<BrokerPlugin> plugins) throws Exception {
+        super.addAdditionalPlugins(plugins);
+        plugins.add(new BrokerPluginSupport() {
+            @Override
+            public Broker installPlugin(Broker broker) {
+                return new BrokerFilter(broker) {
+                    @Override
+                    public boolean sendToDeadLetterQueue(ConnectionContext context,
+                            MessageReference messageReference, Subscription subscription,
+                            Throwable poisonCause) {
+                        sentToDlq.set(true);
+                        return super.sendToDeadLetterQueue(context, messageReference,
+                                subscription, poisonCause);
+                    }
+                };
+            }
+        });
     }
 
     public void sendMessage(String msg) throws Exception {
@@ -219,6 +252,62 @@ public class StompTest extends StompTestSupport {
         long tnow = System.currentTimeMillis();
         long tmsg = message.getJMSTimestamp();
         assertTrue(Math.abs(tnow - tmsg) < 1000);
+    }
+
+    @Test(timeout = 60000)
+    public void testMaxInflatedDataSizeErrorDlqText() throws Exception {
+        testMaxInflatedDataSizeErrorDlq(false);
+    }
+
+    @Test(timeout = 60000)
+    public void testMaxInflatedDataSizeErrorDlqBytes() throws Exception {
+        testMaxInflatedDataSizeErrorDlq(true);
+    }
+
+    private void testMaxInflatedDataSizeErrorDlq(boolean bytes) throws Exception {
+        String body = "testtesttesttesttesttest";
+
+        // set a tiny max size to trigger an error on dispatch
+        brokerService.setMaxInflatedDataSize(10);
+        ((ActiveMQConnection)connection).setUseCompression(true);
+        MessageProducer producer = session.createProducer(queue);
+
+        String frame = "CONNECT\n" + "login:system\n" + "passcode:manager\n\n" + Stomp.NULL;
+        stompConnection.sendFrame(frame);
+
+        frame = stompConnection.receiveFrame();
+        assertTrue(frame.startsWith("CONNECTED"));
+        frame = "SUBSCRIBE\n" + "destination:/queue/" + getQueueName() + "\n" + "ack:auto\n\n" + Stomp.NULL;
+        stompConnection.sendFrame(frame);
+
+        // marshal and clear so the broker will have to decompress
+        ActiveMQMessage m;
+        if (bytes) {
+            BytesMessage bytesMessage = session.createBytesMessage();
+            bytesMessage.writeBytes(body.getBytes());
+            m = (ActiveMQMessage) bytesMessage;
+        } else {
+            m = (ActiveMQMessage) session.createTextMessage(body);
+        }
+        m.storeContentAndClear();
+        producer.send(m);
+
+        // Message should be DLQ'd because it exceeds max inflated data size
+        try {
+            StompFrame frameNull = stompConnection.receive(500);
+            if (frameNull != null) {
+                fail("Should not have received any messages");
+            }
+        } catch (SocketTimeoutException soe) {}
+
+        // verify message is gone off the dest and went to the DLQ
+        assertTrue(Wait.waitFor(new Wait.Condition() {
+            @Override
+            public boolean isSatisified() throws Exception {
+                return brokerService.getDestination(queue).getDestinationStatistics().getMessages().getCount() == 0;
+            }
+        }, 500, 10));
+        assertTrue(sentToDlq.get());
     }
 
     @Test(timeout = 60000)

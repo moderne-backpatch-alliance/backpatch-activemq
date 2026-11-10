@@ -48,7 +48,7 @@ import org.slf4j.Logger;
 /**
  *
  */
-public abstract class BaseDestination implements Destination {
+public abstract class BaseDestination implements Destination, Message.MaxInflatedDataSizeAware {
     /**
      * The maximum number of messages to page in to the destination from
      * persistent storage
@@ -883,5 +883,10 @@ public abstract class BaseDestination implements Destination {
 
     public boolean isPersistJMSRedelivered() {
         return persistJMSRedelivered;
+    }
+
+    @Override
+    public int getMaxInflatedDataSize() {
+        return brokerService.getMaxInflatedDataSize();
     }
 }

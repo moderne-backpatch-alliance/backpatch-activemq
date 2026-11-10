@@ -40,6 +40,7 @@ import org.apache.activemq.util.ByteArrayOutputStream;
 import org.apache.activemq.util.ByteSequence;
 import org.apache.activemq.util.ClassLoadingAwareObjectInputStream;
 import org.apache.activemq.util.JMSExceptionSupport;
+import org.apache.activemq.util.MarshallingSupport;
 import org.apache.activemq.wireformat.WireFormat;
 
 /**
@@ -196,7 +197,8 @@ public class ActiveMQObjectMessage extends ActiveMQMessage implements ObjectMess
                 ByteSequence content = getContent();
                 InputStream is = new ByteArrayInputStream(content);
                 if (isCompressed()) {
-                    is = new InflaterInputStream(is);
+                    // wrap the stream so we don't inflate past maxInflatedDataSize
+                    is = MarshallingSupport.createInflaterInputStream(getMaxInflatedDataSize(), is);
                 }
                 DataInputStream dataIn = new DataInputStream(is);
                 ClassLoadingAwareObjectInputStream objIn = new ClassLoadingAwareObjectInputStream(dataIn);

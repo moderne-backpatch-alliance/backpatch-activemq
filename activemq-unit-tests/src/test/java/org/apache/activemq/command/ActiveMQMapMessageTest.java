@@ -21,6 +21,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -33,6 +35,7 @@ import javax.jms.MessageFormatException;
 import javax.jms.MessageNotReadableException;
 import javax.jms.MessageNotWriteableException;
 
+import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.util.ByteSequenceData;
 import org.apache.activemq.util.MarshallingSupport.ActiveMQUnmarshalEOFException;
 import org.apache.activemq.util.ExceptionUtils;
@@ -474,12 +477,27 @@ public class ActiveMQMapMessageTest {
 
     @Test
     public void testUnmarshalException() throws Exception {
+        testUnmarshalException(false);
+    }
+
+    @Test
+    public void testCompressedUnmarshalException() throws Exception {
+        testUnmarshalException(true);
+    }
+
+    // For map messages both compressed and uncompressed need to be unmarshalled
+    private void testUnmarshalException(boolean compressed) throws Exception {
+        ActiveMQConnection connection = mock(ActiveMQConnection.class);
+        when(connection.isUseCompression()).thenReturn(compressed);
+
         ActiveMQMapMessage msg = new ActiveMQMapMessage();
+        msg.setConnection(connection);
         msg.setString("test", "test");
 
         // store and marshal
         msg.storeContentAndClear();
         assertTrue(msg.map.isEmpty());
+        assertEquals(compressed, msg.isCompressed());
 
         // corrupt the buffer
         ByteSequenceData.writeIntBig(msg.content, 1000);
@@ -494,5 +512,4 @@ public class ActiveMQMapMessageTest {
                     ExceptionUtils.getRootCause(e) instanceof ActiveMQUnmarshalEOFException);
         }
     }
-
 }

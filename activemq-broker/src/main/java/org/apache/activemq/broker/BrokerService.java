@@ -268,6 +268,7 @@ public class BrokerService implements Service {
     private boolean rollbackOnlyOnAsyncException = true;
 
     private int storeOpenWireVersion = OpenWireFormat.DEFAULT_STORE_VERSION;
+    private int maxInflatedDataSize = OpenWireFormat.DEFAULT_MAX_INFLATED_DATA_SIZE;
 
     static {
 
@@ -3241,5 +3242,19 @@ public class BrokerService implements Service {
 
     public boolean isRollbackOnlyOnAsyncException() {
         return rollbackOnlyOnAsyncException;
+    }
+
+    public int getMaxInflatedDataSize() {
+        return maxInflatedDataSize;
+    }
+
+    /**
+     * Set the maximum size that a compressed message can inflate to
+     * if a message has to be decompressed.
+     *
+     * @param maxInflatedDataSize
+     */
+    public void setMaxInflatedDataSize(int maxInflatedDataSize) {
+        this.maxInflatedDataSize = maxInflatedDataSize;
     }
 }

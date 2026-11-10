@@ -16,6 +16,8 @@
  */
 package org.apache.activemq.command;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.beans.Transient;
 import java.io.DataOutputStream;
@@ -29,6 +31,7 @@ import javax.jms.MessageNotWriteableException;
 import junit.framework.TestCase;
 import junit.textui.TestRunner;
 
+import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.util.ByteArrayOutputStream;
 import org.apache.activemq.util.ByteSequence;
 import org.apache.activemq.util.ByteSequenceData;
@@ -160,13 +163,27 @@ public class ActiveMQTextMessageTest extends TestCase {
         assertTrue(method.isAnnotationPresent(Transient.class));
     }
 
-    public void testUnUnmarshalException() throws Exception {
+    public void testUnCompressedUnmarshalException() throws Exception {
+        testUnmarshalException(false);
+    }
+
+    public void testCompressedUnmarshalException() throws Exception {
+        testUnmarshalException(true);
+    }
+
+    // For text messages both compressed and uncompressed need to be unmarshalled
+    private void testUnmarshalException(boolean compressed) throws Exception {
+        ActiveMQConnection connection = mock(ActiveMQConnection.class);
+        when(connection.isUseCompression()).thenReturn(compressed);
+
         ActiveMQTextMessage msg = new ActiveMQTextMessage();
+        msg.setConnection(connection);
         msg.setText("content");
 
         // store and marshal
         msg.storeContentAndClear();
         assertNull(msg.text);
+        assertEquals(compressed, msg.isCompressed());
 
         // corrupt the buffer
         ByteSequenceData.writeIntBig(msg.content, 1000);

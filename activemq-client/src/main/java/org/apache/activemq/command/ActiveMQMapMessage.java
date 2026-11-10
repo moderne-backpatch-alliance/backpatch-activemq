@@ -174,7 +174,8 @@ public class ActiveMQMapMessage extends ActiveMQMessage implements MapMessage {
                 ByteSequence content = getContent();
                 InputStream is = new ByteArrayInputStream(content);
                 if (isCompressed()) {
-                    is = MarshallingSupport.createInflaterInputStream(is);
+                    // wrap the stream so we don't inflate past maxInflatedDataSize
+                    is = MarshallingSupport.createInflaterInputStream(getMaxInflatedDataSize(), is);
                 }
                 DataInputStream dataIn = new DataInputStream(is);
                 map = MarshallingSupport.unmarshalPrimitiveMap(dataIn);
