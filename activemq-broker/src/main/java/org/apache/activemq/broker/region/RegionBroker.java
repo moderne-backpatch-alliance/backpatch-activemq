@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -103,7 +104,7 @@ public class RegionBroker extends EmptyBroker {
 
     private final LongSequenceGenerator sequenceGenerator = new LongSequenceGenerator();
     private BrokerId brokerId;
-    private String brokerName;
+    private final String brokerName;
     private final Map<String, ConnectionContext> clientIdSet = new HashMap<String, ConnectionContext>();
     private final DestinationInterceptor destinationInterceptor;
     private ConnectionContext adminConnectionContext;
@@ -121,7 +122,8 @@ public class RegionBroker extends EmptyBroker {
 
     public RegionBroker(BrokerService brokerService, TaskRunnerFactory taskRunnerFactory, SystemUsage memoryManager, DestinationFactory destinationFactory,
         DestinationInterceptor destinationInterceptor, Scheduler scheduler, ThreadPoolExecutor executor) throws IOException {
-        this.brokerService = brokerService;
+        this.brokerService = Objects.requireNonNull(brokerService);
+        this.brokerName = Objects.requireNonNull(brokerService.getBrokerName(), "The broker name cannot be null");
         this.executor = executor;
         this.scheduler = scheduler;
         if (destinationFactory == null) {
@@ -555,18 +557,7 @@ public class RegionBroker extends EmptyBroker {
 
     @Override
     public String getBrokerName() {
-        if (brokerName == null) {
-            try {
-                brokerName = InetAddressUtil.getLocalHostName().toLowerCase(Locale.ENGLISH);
-            } catch (Exception e) {
-                brokerName = "localhost";
-            }
-        }
         return brokerName;
-    }
-
-    public void setBrokerName(String brokerName) {
-        this.brokerName = brokerName;
     }
 
     public DestinationStatistics getDestinationStatistics() {
