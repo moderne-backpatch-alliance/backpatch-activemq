@@ -53,7 +53,7 @@ public class BrokerView implements BrokerViewMBean {
 
     public static final Set<String> DENIED_TRANSPORT_SCHEMES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList("vm", "http",
             "multicast", "zeroconf", "discovery", "fanout", "mock", "peer", "failover",
-            "proxy", "reliable", "simple", "udp")));
+            "proxy", "reliable", "simple", "udp", "masterslave")));
 
     ManagedRegionBroker broker;
 
@@ -548,26 +548,32 @@ public class BrokerView implements BrokerViewMBean {
     // Validate the URI does not contain a denied transport scheme
     private static void validateAllowedUri(URI uri, int depth) throws URISyntaxException {
         // Don't allow more than 5 nested URIs to prevent blowing the stack
-        // If we are greater than 4 then this is the 5th level of composite
-        if (depth > 4) {
+        if (depth > 5) {
             throw new IllegalArgumentException("URI can't contain more than 5 nested composite URIs");
         }
 
         // First check the main URI scheme
         validateAllowedScheme(uri.getScheme());
 
-        // If composite, iterate and check each of the composite URIs
-        if (URISupport.isCompositeURI(uri)) {
-            URISupport.CompositeData data = URISupport.parseComposite(uri);
+        // isCompositeURI misses nested URIs and URIs without parentheses, so parse as
+        // the transports do and check each parsed component.
+        final URISupport.CompositeData data;
+        try {
+            data = URISupport.parseComposite(uri);
+        } catch (URISyntaxException e) {
+            // If this is not a valid URI then we can stop checking
+            // This can happen when parsing a nested URI and at the last portion
+            return;
+        }
+
+        if (data.getComponents() != null) {
             depth++;
             for (URI component : data.getComponents()) {
-                // Each URI could be a nested composite URI so call validateAllowedUri()
-                // to validate it. This check if composite first so we don't add to
-                // the recursive stack depth if there's a lot of URIs that are not composite
-                if (URISupport.isCompositeURI(component)) {
+                // Each URI could be a nested and/or composite URI so call validateAllowedUri()
+                // to validate it. If the scheme is null then the original URI is not composite
+                // or nested so we can skip the check, and we are finished.
+                if (component.getScheme() != null) {
                     validateAllowedUri(component, depth);
-                } else {
-                    validateAllowedScheme(component.getScheme());
                 }
             }
         }
