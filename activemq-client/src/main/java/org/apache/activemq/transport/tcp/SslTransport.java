@@ -17,11 +17,14 @@
 package org.apache.activemq.transport.tcp;
 
 import java.io.IOException;
+import java.net.Socket;
+import java.net.SocketException;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
 
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
@@ -42,6 +45,8 @@ import org.apache.activemq.wireformat.WireFormat;
  * unexpected situations may occur.
  */
 public class SslTransport extends TcpTransport {
+
+    private Boolean verifyHostName = null;
 
     /**
      * Connect to a remote node such as a Broker.
@@ -71,6 +76,28 @@ public class SslTransport extends TcpTransport {
             props.put("host", remoteLocation.getHost());
             IntrospectionSupport.setProperties(this.socket, props);
         }
+    }
+
+    @Override
+    protected void initialiseSocket(Socket sock) throws SocketException, IllegalArgumentException {
+        //Null means not set: a server connection gets it from the setter (TcpTransportServer), so a default
+        //on the field would override that. A client gets it from socket.verifyHostName, or true.
+        if (verifyHostName == null) {
+            if (socketOptions != null && socketOptions.containsKey("verifyHostName")) {
+                verifyHostName = Boolean.parseBoolean(socketOptions.get("verifyHostName").toString());
+                socketOptions.remove("verifyHostName");
+            } else {
+                verifyHostName = true;
+            }
+        }
+
+        if (verifyHostName) {
+            SSLParameters sslParams = new SSLParameters();
+            sslParams.setEndpointIdentificationAlgorithm("HTTPS");
+            ((SSLSocket)this.socket).setSSLParameters(sslParams);
+        }
+
+        super.initialiseSocket(sock);
     }
 
     /**
@@ -106,6 +133,10 @@ public class SslTransport extends TcpTransport {
             connectionInfo.setTransportContext(getPeerCertificates());
         }
         super.doConsume(command);
+    }
+
+    public void setVerifyHostName(Boolean verifyHostName) {
+        this.verifyHostName = verifyHostName;
     }
 
     /**
