@@ -38,6 +38,7 @@ import org.apache.activemq.filter.LogicExpression;
 import org.apache.activemq.filter.MessageEvaluationContext;
 import org.apache.activemq.filter.NoLocalExpression;
 import org.apache.activemq.selector.SelectorParser;
+import org.apache.activemq.ActiveMQMessageFormatException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,11 +107,23 @@ public abstract class AbstractSubscription implements Subscription {
             }
         }
         try {
-            return (selectorExpression == null || selectorExpression.matches(context)) && this.context.isAllowedToConsume(node);
+            return matchesSelector(node, context) && this.context.isAllowedToConsume(node);
         } catch (JMSException e) {
             LOG.info("Selector failed to evaluate: {}", e.getMessage(), e);
             return false;
         }
+    }
+
+    // Queue subscriptions override this: a format error there must remove the message, or
+    // the queue keeps trying to re-add it to the sub on each iteration.
+    protected boolean matchesSelector(MessageReference node, MessageEvaluationContext context)
+            throws JMSException, ActiveMQMessageFormatException {
+        return evaluateSelectorExpression(context);
+    }
+
+    // move the original selector expression into its own method so we can reference it
+    protected final boolean evaluateSelectorExpression(MessageEvaluationContext context) throws JMSException {
+        return selectorExpression == null || selectorExpression.matches(context);
     }
 
     @Override
