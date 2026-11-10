@@ -451,6 +451,8 @@
             <org.apache.activemq.default.directory.prefix>target/</org.apache.activemq.default.directory.prefix>
             <org.apache.activemq.AutoFailTestSupport.disableSystemExit>true</org.apache.activemq.AutoFailTestSupport.disableSystemExit>
             <org.apache.activemq.broker.jmx.createConnector>false</org.apache.activemq.broker.jmx.createConnector>
+            <!-- appended last, as upstream's AMQ-7142 default: this Bouncy Castle's RSASSA-PSS breaks TLS 1.3 handshakes on current JDK 8 -->
+            <org.apache.activemq.broker.BouncyCastlePosition>100</org.apache.activemq.broker.BouncyCastlePosition>
           </systemPropertyVariables>
           <includes>
             <include>**/*Test.*</include>

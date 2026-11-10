@@ -68,7 +68,7 @@ public class SslBrokerServiceTest extends TransportBrokerTestSupport {
         KeyManager[] km = getKeyManager();
         TrustManager[] tm = getTrustManager();
         connector = service.addSslConnector(getBindLocation(), km, tm, null);
-        limitedCipherSuites = service.addSslConnector("ssl://localhost:0?transport.enabledCipherSuites=SSL_RSA_WITH_RC4_128_SHA,SSL_DH_anon_WITH_3DES_EDE_CBC_SHA", km, tm, null);
+        limitedCipherSuites = service.addSslConnector("ssl://localhost:0?transport.enabledCipherSuites=TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256", km, tm, null);
         needClientAuthConnector = service.addSslConnector("ssl://localhost:0?transport.needClientAuth=true", km, tm, null);
         
         // for client side
@@ -81,15 +81,21 @@ public class SslBrokerServiceTest extends TransportBrokerTestSupport {
     }
 
     public void testNeedClientAuthReject() throws Exception {
-        SSLContext context = SSLContext.getInstance("TLS");    
+        // TLSv1.2: under TLS 1.3 the client finishes its handshake before the
+        // server's certificate_required alert arrives, so the rejection would
+        // only surface on first read/write rather than in startHandshake()
+        SSLContext context = SSLContext.getInstance("TLSv1.2");
         // no client cert
         context.init(null, getTrustManager(), null);
         
         try {
             makeSSLConnection(context, null, needClientAuthConnector);
             fail("expected failure on no client cert");
-        } catch (SSLException expected) {
-            expected.printStackTrace();
+        } catch (SSLException | SocketException expected) {
+            // SSLException when the server's fatal alert is read first;
+            // SocketException (broken pipe/reset) when the client's handshake
+            // write races the server-side close after the alert
+            LOG.info("Got expected rejection: {}", expected.toString());
         }
         // should work with regular connector
         makeSSLConnection(context, null, connector);
@@ -113,7 +119,7 @@ public class SslBrokerServiceTest extends TransportBrokerTestSupport {
         }
 
         // ok with the enabled one
-        makeSSLConnection(context, new String[]{ "SSL_RSA_WITH_RC4_128_SHA" }, limitedCipherSuites);
+        makeSSLConnection(context, new String[]{ "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256" }, limitedCipherSuites);
     }
 
     private void makeSSLConnection(SSLContext context, String enabledSuites[], TransportConnector connector) throws Exception,
@@ -124,9 +130,11 @@ public class SslBrokerServiceTest extends TransportBrokerTestSupport {
             sslSocket.setEnabledCipherSuites(enabledSuites);
         }
         sslSocket.setSoTimeout(5000);
-        
-        SSLSession session = sslSocket.getSession();
+
+        // handshake first so failures surface as SSLException (getSession()
+        // swallows handshake errors and returns an invalid session)
         sslSocket.startHandshake();
+        SSLSession session = sslSocket.getSession();
         LOG.info("cyphersuite: " + session.getCipherSuite());
         LOG.info("peer port: " + session.getPeerPort());
         LOG.info("peer cert: " + session.getPeerCertificateChain()[0].toString());    
