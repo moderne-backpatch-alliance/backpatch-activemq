@@ -1,6 +1,6 @@
 schema: osera-patch-evidence/0.1.0
 producer: moderne
-release: 5.16.8.1-backpatch-00009
+release: 5.16.8.1-backpatch-00010
 baseline: v5.16.8+backpatch.baseline
 fixes:
   - cve: CVE-2026-39304
@@ -202,12 +202,32 @@ fixes:
       - org.apache.activemq:activemq-rar
       - org.apache.activemq:activemq-web-console
       - org.apache.activemq:apache-activemq
-    note: New in this release; ported onto 5.16.8; fixed at 5.16.8.1-backpatch-00009 (backpatch-activemq@ff50d84..80251e5).
+    note: Carried from 5.16.8.1-backpatch-00009; ported onto 5.16.8; fixed at 5.16.8.1-backpatch-00009 (backpatch-activemq@ff50d84..80251e5).
+  - cve: CVE-2026-49270
+    upstream_fix_url: https://github.com/apache/activemq/commit/038cb1e688c5383e14b455f32448f80bdbd88777
+    advisory_url: https://nvd.nist.gov/vuln/detail/CVE-2026-49270
+    patch_commit_url: https://github.com/moderne-backpatch-alliance/backpatch-activemq/commit/1d7281b
+    basis: adapted
+    artifacts:
+      - org.apache.activemq:activemq-client
+      - org.apache.activemq:activemq-broker
+      - org.apache.activemq:activemq-stomp
+      - org.apache.activemq:activemq-mqtt
+      - org.apache.activemq:activemq-amqp
+      - org.apache.activemq:activemq-web
+      - org.apache.activemq:activemq-jdbc-store
+      - org.apache.activemq:activemq-spring
+      - org.apache.activemq:activemq-all
+      - org.apache.activemq:activemq-osgi
+      - org.apache.activemq:activemq-rar
+      - org.apache.activemq:activemq-web-console
+      - org.apache.activemq:apache-activemq
+    note: New in this release; ported onto 5.16.8; fixed at 5.16.8.1-backpatch-00010 (backpatch-activemq@1d7281b).
 tests:
-  commit: 80251e513b339cc246ccaaaad531dc715f1116a1
+  commit: 1d7281b7789ec96298824d837bcda92ad019b426
   command: mvn -B -T1 -pl activemq-client,activemq-broker,activemq-web,activemq-stomp,activemq-mqtt,activemq-amqp,activemq-jdbc-store,activemq-spring,activemq-unit-tests,activemq-all,activemq-osgi,activemq-rar,activemq-web-console,assembly -am -Dossindex.skip=true -Dtest=ActiveMQConnectionFactoryXBeanTest,ActiveMQConnectionMetaDataTest,ActiveMQMapMessageTest,ActiveMQMessageFormatExceptionSelectorTest,ActiveMQMessageTest,ActiveMQObjectMessageTest,ActiveMQStreamMessageTest,ActiveMQTextMessageTest,AutoNIOSslTransportBrokerTest,AutoSslTransportBrokerTest,BrokerServiceTest,BrokerXmlConfigFromJNDITest,DestinationViewBrokerNameTest,DurableSyncNetworkBridgeAuthTest,DurableSyncNetworkBridgeTest,FactoryFinderStringConstructorTest,FactoryFinderTest,FrameSizeLimitedFilterInputStreamTest,JMSClientAutoNioPlusSslTest,JMSClientNioPlusSslTest,JMSClientSslTest,JMSInteroperabilityTest,JmxCreateNCTest,LdapNetworkConnectorTest,MBeanTest,MQTTAutoNioSslTest,MQTTNIOSSLTest,MQTTTest,MarshallingSupportTest,NIOSSLBasicTest,NIOSSLTransportBrokerTest,ProtocolConverterTest,QueueBrowseServletTest,SimpleMessageRendererTest,SslTransportBrokerTest,StompAutoNioSslTest,StompNIOSSLTest,StompSslAuthTest,StompTest,UtilsTest,VMTransportFactoryTest,ViewUtilsTest,WireFormatInfoTest,XBeanBrokerFactoryTest -Dsurefire.failIfNoSpecifiedTests=false -DfailIfNoTests=false -Dmaven.test.failure.ignore=true clean test
   runtime: openjdk version 1.8.0_382, Apache Maven 3.9.16
-  report: activemq-client-5.16.8.1-backpatch-00009-tests.zip
-  report_sha256: d63f2f6bf38434dc4ec0936c9a16d1b652a8a87a78dc2e01c973dabcd65e45dd
+  report: activemq-client-5.16.8.1-backpatch-00010-tests.zip
+  report_sha256: db3bcc6d06783e3309ff582056bdc0498ee22422385723f362a9c05252b863da
   result: pass
-  note: 1470 tests at the patch commit, 12 of them skipped by the suite, 0 failed, 0 errors. From 00004 on the suite ran in Docker (azul/zulu-openjdk:8) after a suite hang on macOS; 00001 to 00003 ran on macOS.
+  note: 1476 tests at the patch commit, 12 of them skipped by the suite, 0 failed, 0 errors. Known flake org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationSuccess, org.apache.activemq.transport.stomp.StompNIOSSLTest#testPersistent, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransactionCommit, org.apache.activemq.transport.stomp.StompNIOSSLTest#testAckInTransactionQueue, org.apache.activemq.transport.stomp.StompNIOSSLTest#testAckInTransactionTopic, org.apache.activemq.transport.stomp.StompNIOSSLTest#testReceipts, org.apache.activemq.transport.stomp.StompNIOSSLTest#testUnsubscribe, org.apache.activemq.transport.stomp.StompNIOSSLTest#testPrefetchSize, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSendMessage, org.apache.activemq.transport.stomp.StompNIOSSLTest#testDurableUnsub, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSubscribeWithAutoAckAndNumericSelector, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationSendJSONObject, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationReceiveXMLObjectAndMap, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationReceiveBytesMessage, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationFailed, org.apache.activemq.transport.stomp.StompNIOSSLTest#testConnectNotAuthenticatedWrongUser, org.apache.activemq.transport.stomp.StompNIOSSLTest#testHeaderValuesAreTrimmed1_0, org.apache.activemq.transport.stomp.StompNIOSSLTest#testBytesMessageWithNulls, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSubscribeWithAutoAckAndSelector, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSendNotAuthorized, org.apache.activemq.transport.stomp.StompNIOSSLTest#testConnect, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransactionRollback, org.apache.activemq.transport.stomp.StompNIOSSLTest#testMessagesAreInOrder, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSubscribeWithClientAck, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationSendJSONMap, org.apache.activemq.transport.stomp.StompNIOSSLTest#testClientSetMessageIdIsIgnored, org.apache.activemq.transport.stomp.StompNIOSSLTest#testDurableSubAttemptOnQueueFails, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationSendAndReceiveXmlMap, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationSendAndReceiveJsonMap, org.apache.activemq.transport.stomp.StompNIOSSLTest#testJMSXUserIDIsSetInStompMessage, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSubscribeWithAutoAckAndBytesMessage, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSendReceiveBigMessage, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSendFrameWithInvalidAction, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransactedClientAckBrokerStats, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSubscribeWithAutoAckAnFloatSelector, org.apache.activemq.transport.stomp.StompNIOSSLTest#testConnectNotAuthenticatedWrongPassword, org.apache.activemq.transport.stomp.StompNIOSSLTest#testReplytoModification, org.apache.activemq.transport.stomp.StompNIOSSLTest#testExpire, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSendNullBodyTextMessage, org.apache.activemq.transport.stomp.StompNIOSSLTest#testReplyToDestinationNaming, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationSendXMLObject, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationReceiveXMLObject, org.apache.activemq.transport.stomp.StompNIOSSLTest#testPrefetchSizeOfOneClientAck, org.apache.activemq.transport.stomp.StompNIOSSLTest#testDefaultJMSReplyToDest, org.apache.activemq.transport.stomp.StompNIOSSLTest#testDisconnectedClientsAreRemovedFromTheBroker, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationReceiveJSONObject, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationReceiveJSONMap, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationNotOverrideSubscription, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSubscriptionReceipts, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationFailuresFallbackToDefault, org.apache.activemq.transport.stomp.StompNIOSSLTest#testFrameHeaderEscapes, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSendMessageWithCustomHeadersAndSelector, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationReceiveJSONObjectAndMap failed in the full run and passed when counter.py reran its class once, which counts as a pass (Peter's flaky rule, applied by the tool because this suite's surefire has no rerun); the first run's report is in the archive as FLAKY-first-run-*. From 00004 on the suite ran in Docker (azul/zulu-openjdk:8) after a suite hang on macOS; 00001 to 00003 ran on macOS.
