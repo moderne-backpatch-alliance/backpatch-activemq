@@ -199,14 +199,23 @@ public class FactoryFinder<T> {
         return requiredType;
     }
 
-    private String resolvePath(final String key) throws InstantiationException {
+    String resolvePath(final String key) throws InstantiationException {
+        if (containsPathSeparators(key)) {
+            throw new InstantiationException("Provided key may not contain path separators");
+        }
+
         final Path resolvedPath = Paths.get(path).resolve(key).normalize();
 
         if (!resolvedPath.startsWith(path)) {
             throw new InstantiationException("Provided key escapes the FactoryFinder configured directory");
         }
 
-        return resolvedPath.toString();
+        // Classpath resources need forward slashes, also on Windows.
+        return resolvedPath.toString().replace("\\", "/");
+    }
+
+    public static boolean containsPathSeparators(String str) {
+        return str.contains("/") || str.contains("\\");
     }
 
     public static String buildAllowedImpls(Class<?>...classes) {
