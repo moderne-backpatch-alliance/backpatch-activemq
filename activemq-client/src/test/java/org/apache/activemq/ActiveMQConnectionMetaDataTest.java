@@ -1,0 +1,60 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.activemq;
+
+import static org.junit.Assert.assertEquals;
+
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import org.junit.Test;
+
+public class ActiveMQConnectionMetaDataTest {
+
+    // A copy of ActiveMQConnectionMetaData.PLATFORM_DETAILS_MAX_LENGTH, kept here so this test
+    // also compiles and runs against a client that does not have it yet.
+    private static final int PLATFORM_DETAILS_MAX_LENGTH = 512;
+
+    @Test
+    public void testPlatformDetails() throws Exception {
+        // static final should match generated from the utility method
+        assertEquals(ActiveMQConnectionMetaData.PLATFORM_DETAILS,
+                getPlatformDetails());
+    }
+
+    @Test
+    public void testPlatformDetailsTruncation() throws Exception {
+        String javaVendor = System.getProperty("java.vendor");
+        try {
+            char[] vendor = new char[PLATFORM_DETAILS_MAX_LENGTH + 1];
+            Arrays.fill(vendor, 'a');
+            System.setProperty("java.vendor", new String(vendor));
+            // ensure we truncate if too large
+            assertEquals(PLATFORM_DETAILS_MAX_LENGTH,
+                    getPlatformDetails().length());
+        } finally {
+            // restore original
+            System.setProperty("java.vendor", javaVendor);
+        }
+    }
+
+    private static String getPlatformDetails() throws Exception {
+        Method method = ActiveMQConnectionMetaData.class.getDeclaredMethod("getPlatformDetails");
+        method.setAccessible(true);
+        return (String) method.invoke(null);
+    }
+}
