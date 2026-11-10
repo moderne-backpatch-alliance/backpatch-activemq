@@ -40,7 +40,7 @@ public class WireFormatInfo implements Command, MarshallAware {
 
     public static final byte DATA_STRUCTURE_TYPE = CommandTypes.WIREFORMAT_INFO;
     static final int MAX_PROPERTY_SIZE = 64;
-    static final int MAX_PROPERTY_BUFFER_SIZE = 512;
+    public static final int MAX_PROPERTY_BUFFER_SIZE = 512;
     static final int MAX_PROPERTY_DEPTH = 0;
     private static final byte[] MAGIC = new byte[] {'A', 'c', 't', 'i', 'v', 'e', 'M', 'Q'};
 
