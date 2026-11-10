@@ -1,6 +1,6 @@
 schema: osera-patch-evidence/0.1.0
 producer: moderne
-release: 5.16.8.1-backpatch-00006
+release: 5.16.8.1-backpatch-00007
 baseline: v5.16.8+backpatch.baseline
 fixes:
   - cve: CVE-2026-39304
@@ -142,12 +142,32 @@ fixes:
       - org.apache.activemq:activemq-rar
       - org.apache.activemq:activemq-web-console
       - org.apache.activemq:apache-activemq
-    note: "New in this release; ported onto 5.16.8; fixed at 5.16.8.1-backpatch-00006 (backpatch-activemq@963ff52). XBeanBrokerFactory now loads broker configuration only from file and classpath URLs by default, as in upstream's fix, so a broker started from an xbean: URL over http or another remote protocol now fails to start."
+    note: "Carried from 5.16.8.1-backpatch-00006; ported onto 5.16.8; fixed at 5.16.8.1-backpatch-00006 (backpatch-activemq@963ff52). XBeanBrokerFactory now loads broker configuration only from file and classpath URLs by default, as in upstream's fix, so a broker started from an xbean: URL over http or another remote protocol now fails to start."
+  - cve: CVE-2026-50734
+    upstream_fix_url: https://github.com/advisories/GHSA-7259-vf48-52q3
+    advisory_url: https://nvd.nist.gov/vuln/detail/CVE-2026-50734
+    patch_commit_url: https://github.com/moderne-backpatch-alliance/backpatch-activemq/compare/1e05e04~1...a2b8567
+    basis: adapted
+    artifacts:
+      - org.apache.activemq:activemq-client
+      - org.apache.activemq:activemq-broker
+      - org.apache.activemq:activemq-stomp
+      - org.apache.activemq:activemq-mqtt
+      - org.apache.activemq:activemq-amqp
+      - org.apache.activemq:activemq-web
+      - org.apache.activemq:activemq-jdbc-store
+      - org.apache.activemq:activemq-spring
+      - org.apache.activemq:activemq-all
+      - org.apache.activemq:activemq-osgi
+      - org.apache.activemq:activemq-rar
+      - org.apache.activemq:activemq-web-console
+      - org.apache.activemq:apache-activemq
+    note: New in this release; ported onto 5.16.8; fixed at 5.16.8.1-backpatch-00007 (backpatch-activemq@1e05e04..a2b8567).
 tests:
-  commit: 963ff521f7f905bd37e260e30150af2e8dedd268
+  commit: a2b8567a81ed20b27ba12d82fd7f6199575c198d
   command: mvn -B -T1 -pl activemq-client,activemq-broker,activemq-web,activemq-stomp,activemq-mqtt,activemq-amqp,activemq-jdbc-store,activemq-spring,activemq-unit-tests,activemq-all,activemq-osgi,activemq-rar,activemq-web-console,assembly -am -Dossindex.skip=true -Dtest=ActiveMQConnectionFactoryXBeanTest,ActiveMQConnectionMetaDataTest,ActiveMQMapMessageTest,ActiveMQMessageFormatExceptionSelectorTest,ActiveMQMessageTest,ActiveMQObjectMessageTest,ActiveMQStreamMessageTest,ActiveMQTextMessageTest,AutoNIOSslTransportBrokerTest,AutoSslTransportBrokerTest,BrokerServiceTest,BrokerXmlConfigFromJNDITest,DestinationViewBrokerNameTest,DurableSyncNetworkBridgeAuthTest,DurableSyncNetworkBridgeTest,FactoryFinderStringConstructorTest,FactoryFinderTest,FrameSizeLimitedFilterInputStreamTest,JMSClientAutoNioPlusSslTest,JMSClientNioPlusSslTest,JMSClientSslTest,JMSInteroperabilityTest,JmxCreateNCTest,LdapNetworkConnectorTest,MBeanTest,MQTTAutoNioSslTest,MQTTNIOSSLTest,MQTTTest,MarshallingSupportTest,NIOSSLBasicTest,NIOSSLTransportBrokerTest,ProtocolConverterTest,QueueBrowseServletTest,SimpleMessageRendererTest,SslTransportBrokerTest,StompAutoNioSslTest,StompNIOSSLTest,StompSslAuthTest,StompTest,UtilsTest,VMTransportFactoryTest,ViewUtilsTest,WireFormatInfoTest,XBeanBrokerFactoryTest -Dsurefire.failIfNoSpecifiedTests=false -DfailIfNoTests=false -Dmaven.test.failure.ignore=true clean test
   runtime: openjdk version 1.8.0_382, Apache Maven 3.9.16
-  report: activemq-client-5.16.8.1-backpatch-00006-tests.zip
-  report_sha256: ecf6bbf942291ab431ff5d62810fbbe81be5f124b019a54d7bc6216abc793287
+  report: activemq-client-5.16.8.1-backpatch-00007-tests.zip
+  report_sha256: 8cc1dab44ed9e35f62707e12f8fcfe76c9ccacea53ab707e3bceda13a032811f
   result: pass
-  note: 1410 tests at the patch commit, 12 of them skipped by the suite, 0 failed, 0 errors. From 00004 on the suite ran in Docker (azul/zulu-openjdk:8) after a suite hang on macOS; 00001 to 00003 ran on macOS.
+  note: 1425 tests at the patch commit, 12 of them skipped by the suite, 0 failed, 0 errors. From 00004 on the suite ran in Docker (azul/zulu-openjdk:8) after a suite hang on macOS; 00001 to 00003 ran on macOS.
