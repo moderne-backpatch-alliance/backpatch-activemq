@@ -46,7 +46,7 @@ public class BrokerView implements BrokerViewMBean {
 
     public static final Set<String> DENIED_TRANSPORT_SCHEMES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList("vm", "http",
             "multicast", "zeroconf", "discovery", "fanout", "mock", "peer", "failover",
-            "proxy", "reliable", "simple", "udp")));
+            "proxy", "reliable", "simple", "udp", "masterslave")));
 
     ManagedRegionBroker broker;
 
@@ -556,7 +556,6 @@ public class BrokerView implements BrokerViewMBean {
         validateAllowedUri(new URI(uriString), 0);
     }
 
-    // Validate the URI does not contain a denied transport scheme
     private static void validateAllowedUri(URI uri, int depth) throws URISyntaxException {
         // Don't allow more than 5 nested URIs to prevent blowing the stack
         // If we are greater than 4 then this is the 5th level of composite
@@ -564,7 +563,6 @@ public class BrokerView implements BrokerViewMBean {
             throw new IllegalArgumentException("URI can't contain more than 5 nested composite URIs");
         }
 
-        // First check the main URI scheme
         validateAllowedScheme(uri.getScheme());
 
         // If composite, iterate and check each of the composite URIs
@@ -584,10 +582,8 @@ public class BrokerView implements BrokerViewMBean {
         }
     }
 
-    // Check all denied schemes
     private static void validateAllowedScheme(String scheme) {
         for (String denied : DENIED_TRANSPORT_SCHEMES) {
-            // The schemes should be case-insensitive but ignore case as a precaution
             if (scheme.equalsIgnoreCase(denied)) {
                 throw new IllegalArgumentException("Transport scheme '" + scheme + "' is not allowed");
             }

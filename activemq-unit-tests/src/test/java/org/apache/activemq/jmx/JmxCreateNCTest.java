@@ -49,7 +49,7 @@ public class JmxCreateNCTest {
     // and runs against a broker that does not have it yet.
     private static final Set<String> DENIED_TRANSPORT_SCHEMES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList("vm", "http",
             "multicast", "zeroconf", "discovery", "fanout", "mock", "peer", "failover",
-            "proxy", "reliable", "simple", "udp")));
+            "proxy", "reliable", "simple", "udp", "masterslave")));
 
     private BrokerService broker;
     private BrokerViewMBean proxy;
