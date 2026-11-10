@@ -16,8 +16,12 @@
  */
 package org.apache.activemq.util;
 
+import static org.apache.activemq.util.MarshallingSupport.unmarshalPrimitiveMap;
+import static org.apache.activemq.util.MarshallingSupport.unmarshalPrimitiveList;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -25,7 +29,9 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
+import java.io.UTFDataFormatException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -34,7 +40,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.zip.DeflaterOutputStream;
 
+import org.fusesource.hawtbuf.UTF8Buffer;
 import org.junit.Test;
 
 public class MarshallingSupportTest {
@@ -151,6 +159,236 @@ public class MarshallingSupportTest {
             }
             throw e;
         }
+    }
+
+    @Test
+    public void testPrimitiveValuesRoundTrip() throws Exception {
+        ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
+        DataOutputStream dataOut = new DataOutputStream(bytesOut);
+        String largeString = repeat("x", Short.MAX_VALUE / 4);
+
+        MarshallingSupport.marshalPrimitive(dataOut, null);
+        MarshallingSupport.marshalPrimitive(dataOut, true);
+        MarshallingSupport.marshalPrimitive(dataOut, (byte) -12);
+        MarshallingSupport.marshalPrimitive(dataOut, '\u03a9');
+        MarshallingSupport.marshalPrimitive(dataOut, (short) 1234);
+        MarshallingSupport.marshalPrimitive(dataOut, -123456);
+        MarshallingSupport.marshalPrimitive(dataOut, 1234567890123L);
+        MarshallingSupport.marshalPrimitive(dataOut, 1.25f);
+        MarshallingSupport.marshalPrimitive(dataOut, -2.5d);
+        MarshallingSupport.marshalPrimitive(dataOut, new byte[] {1, 2, 3});
+        MarshallingSupport.marshalPrimitive(dataOut, "short string");
+        MarshallingSupport.marshalPrimitive(dataOut, new UTF8Buffer("buffer string"));
+        MarshallingSupport.marshalPrimitive(dataOut, largeString);
+
+        DataInputStream dataIn = new DataInputStream(new ByteArrayInputStream(bytesOut.toByteArray()));
+        assertNull(MarshallingSupport.unmarshalPrimitive(dataIn));
+        assertEquals(Boolean.TRUE, MarshallingSupport.unmarshalPrimitive(dataIn));
+        assertEquals(Byte.valueOf((byte) -12), MarshallingSupport.unmarshalPrimitive(dataIn));
+        assertEquals(Character.valueOf('\u03a9'), MarshallingSupport.unmarshalPrimitive(dataIn));
+        assertEquals(Short.valueOf((short) 1234), MarshallingSupport.unmarshalPrimitive(dataIn));
+        assertEquals(Integer.valueOf(-123456), MarshallingSupport.unmarshalPrimitive(dataIn));
+        assertEquals(Long.valueOf(1234567890123L), MarshallingSupport.unmarshalPrimitive(dataIn));
+        assertEquals(Float.valueOf(1.25f), MarshallingSupport.unmarshalPrimitive(dataIn));
+        assertEquals(Double.valueOf(-2.5d), MarshallingSupport.unmarshalPrimitive(dataIn));
+        assertArrayEquals(new byte[] {1, 2, 3}, (byte[]) MarshallingSupport.unmarshalPrimitive(dataIn));
+        assertEquals("short string", MarshallingSupport.unmarshalPrimitive(dataIn).toString());
+        assertEquals("buffer string", MarshallingSupport.unmarshalPrimitive(dataIn).toString());
+        assertEquals(largeString, MarshallingSupport.unmarshalPrimitive(dataIn).toString());
+        assertEquals(0, dataIn.available());
+    }
+
+    @Test
+    public void testCountUTFBytesAtEncodingBoundaries() {
+        String[] values = {"", "\u0000", "\u0001", "\u007f", "\u0080", "\u07ff",
+                "\u0800", "\uffff", "\ud83d\ude03", "ascii\u0000\u007f\u0080\u07ff\u0800\ud83d\ude03"};
+        long[] lengths = {0, 2, 1, 1, 2, 2, 3, 3, 6, 21};
+        for (int i = 0; i < values.length; i++) {
+            assertEquals("Encoded length for case " + i, lengths[i], MarshallingSupport.countUTFBytes(values[i]));
+        }
+    }
+
+    @Test
+    public void testWriteUTFBytesToBufferMatchesModifiedUTFAtOffset() throws Exception {
+        String value = "A\u0000\u007f\u0080\u07ff\u0800\uffff\ud83d\ude03";
+        byte[] expected = modifiedUTFBytes(value);
+        byte[] buffer = new byte[expected.length + 4];
+        Arrays.fill(buffer, (byte) 0x55);
+
+        assertEquals(expected.length + 2,
+                MarshallingSupport.writeUTFBytesToBuffer(value, expected.length, buffer, 2));
+        assertArrayEquals(expected, Arrays.copyOfRange(buffer, 2, 2 + expected.length));
+        assertArrayEquals(new byte[] {0x55, 0x55}, Arrays.copyOfRange(buffer, 0, 2));
+        assertArrayEquals(new byte[] {0x55, 0x55}, Arrays.copyOfRange(buffer, buffer.length - 2, buffer.length));
+        assertEquals(2, MarshallingSupport.writeUTFBytesToBuffer("", 0, buffer, 2));
+    }
+
+    @Test
+    public void testConvertUTF8WithBufMatchesJavaDecoderAtOffset() throws Exception {
+        String value = "A\u0000\u007f\u0080\u07ff\u0800\uffff\ud83d\ude03";
+        byte[] encoded = modifiedUTFBytes(value);
+        byte[] buffer = new byte[encoded.length + 2];
+        buffer[0] = (byte) 0xff;
+        buffer[buffer.length - 1] = (byte) 0xff;
+        System.arraycopy(encoded, 0, buffer, 1, encoded.length);
+
+        assertEquals(value, MarshallingSupport.convertUTF8WithBuf(buffer, new char[value.length()], 1, encoded.length));
+        assertEquals("", MarshallingSupport.convertUTF8WithBuf(buffer, new char[0], 1, 0));
+    }
+
+    @Test
+    public void testConvertUTF8WithBufRejectsMalformedSequences() {
+        byte[][] malformed = {
+                {(byte) 0x80}, {(byte) 0xff}, {(byte) 0xc2}, {(byte) 0xc2, 0x41},
+                {(byte) 0xe1}, {(byte) 0xe1, (byte) 0x80},
+                {(byte) 0xe1, 0x41, (byte) 0x80}, {(byte) 0xe1, (byte) 0x80, 0x41},
+                {(byte) 0xf0, (byte) 0x9f, (byte) 0x98, (byte) 0x83}
+        };
+        for (byte[] bytes : malformed) {
+            assertThrows(UTFDataFormatException.class,
+                    () -> MarshallingSupport.convertUTF8WithBuf(bytes, new char[bytes.length], 0, bytes.length));
+        }
+    }
+
+    @Test
+    public void testWriteUTF8UsesIntLengthAndModifiedUTFEncoding() throws Exception {
+        String value = "A\u0000\u0080\u0800\ud83d\ude03";
+        byte[] expected = modifiedUTFBytes(value);
+        ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
+        DataOutputStream dataOut = new DataOutputStream(bytesOut);
+        MarshallingSupport.writeUTF8(dataOut, value);
+        MarshallingSupport.writeUTF8(dataOut, "");
+        MarshallingSupport.writeUTF8(dataOut, null);
+
+        DataInputStream dataIn = input(bytesOut.toByteArray());
+        assertEquals(expected.length, dataIn.readInt());
+        byte[] actual = new byte[expected.length];
+        dataIn.readFully(actual);
+        assertArrayEquals(expected, actual);
+        assertEquals(0, dataIn.readInt());
+        assertEquals(-1, dataIn.readInt());
+        assertEquals(0, dataIn.available());
+    }
+
+    @Test
+    public void testReadUTF8ReadsNullEmptyAndLongStringsWithoutConsumingNextValue() throws Exception {
+        String longString = repeat("\u0800", 22000);
+        ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
+        DataOutputStream dataOut = new DataOutputStream(bytesOut);
+        dataOut.writeInt(-1);
+        dataOut.writeInt(0);
+        MarshallingSupport.writeUTF8(dataOut, longString);
+        dataOut.writeByte(42);
+
+        DataInputStream dataIn = input(bytesOut.toByteArray());
+        assertNull(MarshallingSupport.readUTF8(dataIn));
+        assertEquals("", MarshallingSupport.readUTF8(dataIn));
+        assertEquals(longString, MarshallingSupport.readUTF8(dataIn));
+        assertEquals(42, dataIn.readUnsignedByte());
+    }
+
+    @Test
+    public void testReadUTF8EnforcesEncodedByteLimitAndRejectsTruncation() throws Exception {
+        byte[] encoded = modifiedUTFBytes("\u0800");
+        assertEquals("\u0800", MarshallingSupport.readUTF8(input(lengthPrefixed(encoded, false)), 3));
+        assertThrows(MarshallingSupport.ActiveMQUnmarshalEOFException.class,
+                () -> MarshallingSupport.readUTF8(input(lengthPrefixed(encoded, false)), 2));
+        assertThrows(MarshallingSupport.ActiveMQUnmarshalEOFException.class,
+                () -> MarshallingSupport.readUTF8(input(new byte[] {0, 0, 0, 3, 65})));
+        assertThrows(EOFException.class, () -> MarshallingSupport.readUTF8(input(new byte[] {0, 0, 0})));
+        assertThrows(UTFDataFormatException.class,
+                () -> MarshallingSupport.readUTF8(input(lengthPrefixed(new byte[] {(byte) 0xc2, 65}, false))));
+    }
+
+    @Test
+    public void testReadShortUTF8UsesUnsignedLengthAndEnforcesLimits() throws Exception {
+        String value = repeat("x", 65535);
+        byte[] encoded = modifiedUTFBytes(value);
+        assertEquals(value, MarshallingSupport.readShortUTF8(input(lengthPrefixed(encoded, true)), 65535));
+        assertEquals("", MarshallingSupport.readShortUTF8(input(new byte[] {0, 0}), 0));
+        assertThrows(MarshallingSupport.ActiveMQUnmarshalEOFException.class,
+                () -> MarshallingSupport.readShortUTF8(input(lengthPrefixed(encoded, true)), 65534));
+        assertThrows(MarshallingSupport.ActiveMQUnmarshalEOFException.class,
+                () -> MarshallingSupport.readShortUTF8(input(new byte[] {0, 2, 65}), 2));
+        assertThrows(EOFException.class, () -> MarshallingSupport.readShortUTF8(input(new byte[] {0}), 10));
+        assertThrows(UTFDataFormatException.class,
+                () -> MarshallingSupport.readShortUTF8(input(lengthPrefixed(new byte[] {(byte) 0xc2}, true)), 1));
+    }
+
+    @Test
+    public void testReadUTFRetainsEncodedBytesAndRespectsLength() throws Exception {
+        byte[] encoded = modifiedUTFBytes("A\u0000\u0080\u0800");
+        byte[] withTrailer = Arrays.copyOf(encoded, encoded.length + 1);
+        withTrailer[encoded.length] = 42;
+        DataInputStream dataIn = input(withTrailer);
+        UTF8Buffer result = MarshallingSupport.readUTF(dataIn, encoded.length, encoded.length);
+        assertArrayEquals(encoded, Arrays.copyOfRange(result.data, result.offset, result.offset + result.length));
+        assertEquals(42, dataIn.readUnsignedByte());
+        assertEquals("", MarshallingSupport.readUTF(input(new byte[0]), 0, 0).toString());
+        assertThrows(MarshallingSupport.ActiveMQUnmarshalEOFException.class,
+                () -> MarshallingSupport.readUTF(input(encoded), encoded.length - 1, encoded.length));
+        assertThrows(MarshallingSupport.ActiveMQUnmarshalEOFException.class,
+                () -> MarshallingSupport.readUTF(input(encoded), encoded.length + 1, encoded.length + 1));
+    }
+
+    @Test
+    public void testMarshalStringAtShortAndBigStringBoundary() throws Exception {
+        int boundary = Short.MAX_VALUE / 4;
+        String[] values = {"", repeat("\u0800", boundary - 1), repeat("\u0800", boundary)};
+        for (String value : values) {
+            ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
+            MarshallingSupport.marshalString(new DataOutputStream(bytesOut), value);
+            DataInputStream dataIn = input(bytesOut.toByteArray());
+            if (value.length() < boundary) {
+                assertEquals(MarshallingSupport.STRING_TYPE, dataIn.readByte());
+                assertEquals(value, dataIn.readUTF());
+            } else {
+                assertEquals(MarshallingSupport.BIG_STRING_TYPE, dataIn.readByte());
+                assertEquals(value, MarshallingSupport.readUTF8(dataIn));
+            }
+            assertEquals(0, dataIn.available());
+        }
+    }
+
+    private static DataInputStream input(byte[] bytes) {
+        return new DataInputStream(new ByteArrayInputStream(bytes));
+    }
+
+    private static byte[] modifiedUTFBytes(String value) throws IOException {
+        ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
+        new DataOutputStream(bytesOut).writeUTF(value);
+        byte[] encoded = bytesOut.toByteArray();
+        return Arrays.copyOfRange(encoded, 2, encoded.length);
+    }
+
+    private static byte[] lengthPrefixed(byte[] bytes, boolean shortLength) throws IOException {
+        ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
+        DataOutputStream dataOut = new DataOutputStream(bytesOut);
+        if (shortLength) {
+            dataOut.writeShort(bytes.length);
+        } else {
+            dataOut.writeInt(bytes.length);
+        }
+        dataOut.write(bytes);
+        return bytesOut.toByteArray();
+    }
+
+    @Test
+    public void testPropertiesAndTruncateBoundaries() throws Exception {
+        assertEquals("", MarshallingSupport.propertiesToString(null));
+        assertEquals(new Properties(), MarshallingSupport.stringToProperties(null));
+        assertEquals(new Properties(), MarshallingSupport.stringToProperties(""));
+        assertEquals(repeat("x", 63), MarshallingSupport.truncate64(repeat("x", 63)));
+        String longText = repeat("x", 64);
+        assertEquals(repeat("x", 45) + "..." + repeat("x", 12), MarshallingSupport.truncate64(longText));
+    }
+
+    private static String repeat(String text, int count) {
+        StringBuilder result = new StringBuilder(text.length() * count);
+        for (int i = 0; i < count; i++) {
+            result.append(text);
+        }
+        return result.toString();
     }
 
     private void assertException(ThrowableRunnable<Exception> runnable, String error) throws Exception {
