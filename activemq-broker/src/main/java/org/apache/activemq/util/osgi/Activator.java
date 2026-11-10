@@ -53,7 +53,7 @@ import org.slf4j.LoggerFactory;
  * to the OSGi environment.
  *
  */
-public class Activator implements BundleActivator, SynchronousBundleListener, ObjectFactory {
+public class Activator implements BundleActivator, SynchronousBundleListener, FactoryFinder.ValidatingObjectFactory {
 
     private static final Logger LOG = LoggerFactory.getLogger(Activator.class);
 
@@ -171,7 +171,15 @@ public class Activator implements BundleActivator, SynchronousBundleListener, Ob
     // ================================================================
 
     @Override
-    public Object create(String path) throws IllegalAccessException, InstantiationException, IOException, ClassNotFoundException {
+    public Object create(String path)
+            throws IllegalAccessException, InstantiationException, IOException, ClassNotFoundException {
+        throw new UnsupportedOperationException("Create is not supported without requiredType and allowed impls");
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> T create(String path, Class<T> requiredType, Set<Class<? extends T>> allowedImpls)
+            throws IllegalAccessException, InstantiationException, IOException, ClassNotFoundException {
         Class<?> clazz = serviceCache.get(path);
         if (clazz == null) {
             StringBuffer warnings = new StringBuffer();
@@ -198,6 +206,8 @@ public class Activator implements BundleActivator, SynchronousBundleListener, Ob
                     continue;
                 }
 
+                FactoryFinder.validateClass(clazz, requiredType, allowedImpls);
+
                 // Yay.. the class was found.  Now cache it.
                 serviceCache.put(path, clazz);
                 wrapper.cachedServices.add(path);
@@ -213,8 +223,11 @@ public class Activator implements BundleActivator, SynchronousBundleListener, Ob
                 }
                 throw new IOException(msg);
             }
+        } else {
+            // Validate cached classes too: all finders share this factory, and a path can be used with another type.
+            FactoryFinder.validateClass(clazz, requiredType, allowedImpls);
         }
-        return clazz.newInstance();
+        return (T) clazz.newInstance();
     }
 
     // ================================================================

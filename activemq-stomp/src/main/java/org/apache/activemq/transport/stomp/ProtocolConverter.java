@@ -83,6 +83,10 @@ public class ProtocolConverter {
     private static final String BROKER_VERSION;
     private static final StompFrame ping = new StompFrame(Stomp.Commands.KEEPALIVE);
 
+    public static final String DEFAULT_ALLOWED_TRANSLATORS = FactoryFinder.buildAllowedImpls(
+            JmsFrameTranslator.class, LegacyFrameTranslator.class);
+    public static final String FRAME_TRANSLATOR_CLASSES_PROP = "org.apache.activemq.stomp.FRAME_TRANSLATOR_CLASSES";
+
     static {
         String version = "5.6.0";
         try(InputStream in = ProtocolConverter.class.getResourceAsStream("/org/apache/activemq/version.txt")) {
@@ -121,8 +125,8 @@ public class ProtocolConverter {
     private final Object commnadIdMutex = new Object();
     private int lastCommandId;
     private final AtomicBoolean connected = new AtomicBoolean(false);
-    private final FrameTranslator frameTranslator = new LegacyFrameTranslator();
-    private final FactoryFinder FRAME_TRANSLATOR_FINDER = new FactoryFinder("META-INF/services/org/apache/activemq/transport/frametranslator/");
+    private final FrameTranslator defaultFrameTranslator = new LegacyFrameTranslator();
+    private final FactoryFinder<FrameTranslator> frameTranslatorFinder;
     private final BrokerContext brokerContext;
     private String version = "1.0";
     private long hbReadInterval;
@@ -161,6 +165,8 @@ public class ProtocolConverter {
     public ProtocolConverter(StompTransport stompTransport, BrokerContext brokerContext) {
         this.stompTransport = stompTransport;
         this.brokerContext = brokerContext;
+        this.frameTranslatorFinder = new FactoryFinder<>("META-INF/services/org/apache/activemq/transport/frametranslator/",
+                FrameTranslator.class, System.getProperty(FRAME_TRANSLATOR_CLASSES_PROP, DEFAULT_ALLOWED_TRANSLATORS));
     }
 
     protected int generateCommandId() {
@@ -211,17 +217,20 @@ public class ProtocolConverter {
     }
 
     protected FrameTranslator findTranslator(String header, ActiveMQDestination destination, boolean advisory) {
-        FrameTranslator translator = frameTranslator;
+        FrameTranslator translator = null;
         try {
             if (header != null) {
-                translator = (FrameTranslator) FRAME_TRANSLATOR_FINDER.newInstance(header);
-            } else {
-                if (destination != null && (advisory || AdvisorySupport.isAdvisoryTopic(destination))) {
-                    translator = new JmsFrameTranslator();
-                }
+               translator = loadTranslator(header);
+            } else if (destination != null && (advisory || AdvisorySupport.isAdvisoryTopic(destination))) {
+                translator = new JmsFrameTranslator();
             }
         } catch (Exception ignore) {
             // if anything goes wrong use the default translator
+			LOG.debug("Failed in getting a FrameTranslator to convert ", ignore);
+        }
+
+        if (translator == null) {
+            translator = defaultFrameTranslator;
         }
 
         if (translator instanceof BrokerContextAware) {
@@ -229,6 +238,10 @@ public class ProtocolConverter {
         }
 
         return translator;
+    }
+    
+    protected FrameTranslator loadTranslator(String header) throws Exception {
+        return frameTranslatorFinder.newInstance(header);
     }
 
     /**
@@ -900,7 +913,7 @@ public class ProtocolConverter {
 
     public StompFrame convertMessage(ActiveMQMessage message, boolean ignoreTransformation) throws IOException, JMSException {
         if (ignoreTransformation == true) {
-            return frameTranslator.convertMessage(this, message);
+            return defaultFrameTranslator.convertMessage(this, message);
         } else {
             FrameTranslator translator = findTranslator(
                 message.getStringProperty(Stomp.Headers.TRANSFORMATION), message.getDestination(), message.isAdvisory());
