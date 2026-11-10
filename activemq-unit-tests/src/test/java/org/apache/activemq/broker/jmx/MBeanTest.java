@@ -2032,7 +2032,7 @@ public class MBeanTest extends EmbeddedBrokerTestSupport {
         assertTrue(subscription.isExclusive());
     }
 
-    // A copy of BrokerView.DENIED_TRANSPORT_SCHEMES, kept here so this test also compiles
+    // A copy of TransportValidationUtils.DENIED_TRANSPORT_SCHEMES, kept here so this test also compiles
     // and runs against a broker that does not have it yet.
     private static final Set<String> DENIED_TRANSPORT_SCHEMES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList("vm", "http",
             "multicast", "zeroconf", "discovery", "fanout", "mock", "peer", "failover",
