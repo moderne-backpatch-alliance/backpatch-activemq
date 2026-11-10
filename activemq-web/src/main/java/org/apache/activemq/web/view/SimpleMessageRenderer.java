@@ -76,6 +76,12 @@ public class SimpleMessageRenderer implements MessageRenderer {
         return DEFAULT_CONTENT_TYPE;
     }
 
+    // Ignored and must stay so: QueueBrowseServlet sets renderer properties from request parameters.
+    // Kept only for existing callers of this signature, which upstream's fix removed.
+    @Deprecated
+    public void setContentType(String contentType) {
+    }
+
     // Implementation methods
     // -------------------------------------------------------------------------
 
