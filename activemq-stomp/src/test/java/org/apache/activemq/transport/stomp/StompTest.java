@@ -74,6 +74,7 @@ import org.apache.activemq.broker.region.policy.PolicyMap;
 import org.apache.activemq.command.ActiveMQDestination;
 import org.apache.activemq.command.ActiveMQMessage;
 import org.apache.activemq.command.ActiveMQQueue;
+import org.apache.activemq.command.ActiveMQMapMessage;
 import org.apache.activemq.command.ActiveMQTextMessage;
 import org.apache.activemq.transport.nio.NIOSSLTransport;
 import org.apache.activemq.transport.stomp.Stomp.Commands;
@@ -270,22 +271,25 @@ public class StompTest extends StompTestSupport {
     // dispatch to allow the Transport Connection to properly handle
     // with a poison ack so the message will be removed from the subscription.
     @Test(timeout = 60000)
-    public void testCorruptMessage() throws Exception {
+    public void testCorruptMessageMapBody() throws Exception {
         MessageProducer producer = session.createProducer(queue);
         String frame = "CONNECT\n" + "login:system\n" + "passcode:manager\n\n" + Stomp.NULL;
         stompConnection.sendFrame(frame);
         frame = stompConnection.receiveFrame();
         assertTrue(frame.startsWith("CONNECTED"));
-        frame = "SUBSCRIBE\n" + "destination:/queue/" + getQueueName() + "\n" + "ack:auto\n\n" + Stomp.NULL;
+        // the JMS translator decodes a map body; 5.16 passes a text body on without decoding it
+        frame = "SUBSCRIBE\n" + "destination:/queue/" + getQueueName() + "\n" + "ack:auto\n"
+                + "transformation:" + Stomp.Transformations.JMS_MAP_JSON + "\n\n" + Stomp.NULL;
         stompConnection.sendFrame(frame);
-        ActiveMQTextMessage msg = (ActiveMQTextMessage) session.createTextMessage("test");
+        ActiveMQMapMessage msg = (ActiveMQMapMessage) session.createMapMessage();
+        msg.setString("name", "value");
 
         // corrupt the buffer
         msg.storeContentAndClear();
         ByteSequenceData.writeIntBig(msg.getContent(), 1000);
         producer.send(msg);
 
-        // Message should not be received because the UTF8 buffer is corrupt
+        // Message should not be received because the map buffer is corrupt
         try {
             StompFrame frameNull = stompConnection.receive(500);
             if (frameNull != null) {
