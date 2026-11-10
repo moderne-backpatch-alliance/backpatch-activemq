@@ -90,10 +90,10 @@ public class MarshallingSupportTest {
         assertException(new ThrowableRunnable<IOException>() {
             @Override
             public void run() throws IOException {
-                unmarshalPrimitiveMap(dataIn, 100, 2, 10);
+                unmarshalPrimitiveMap(dataIn, 100, 4, 10);
             }
         },
-                "Max buffer size: 2 exceeded, size: 6");
+                "Max buffer size: 4 exceeded, size: 6");
 
         // max depth violated
         dataIn.reset();

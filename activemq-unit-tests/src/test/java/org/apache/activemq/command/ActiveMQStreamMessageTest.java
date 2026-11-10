@@ -25,6 +25,8 @@ import javax.jms.MessageNotWriteableException;
 
 import junit.framework.TestCase;
 
+import org.apache.activemq.util.ByteSequenceData;
+
 /**
  * 
  */
@@ -997,4 +999,24 @@ public class ActiveMQStreamMessageTest extends TestCase {
         }
     }
 
+
+    public void testUnmarshalException() throws Exception {
+        ActiveMQStreamMessage msg = new ActiveMQStreamMessage();
+        msg.writeBytes("Test".getBytes());
+
+        // store and marshal
+        msg.reset();
+        assertNull(msg.dataOut);
+
+        // corrupt the buffer
+        ByteSequenceData.writeIntBig(msg.content, 1000000);
+
+        try {
+            msg.readBytes(new byte[1024]);
+            fail("Should have thrown exception");
+        } catch (JMSException e) {
+            // expected
+            assertTrue(e instanceof MessageFormatException);
+        }
+    }
 }

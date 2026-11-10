@@ -16,6 +16,7 @@
  */
 package org.apache.activemq.command;
 
+
 import java.beans.Transient;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -30,7 +31,10 @@ import junit.textui.TestRunner;
 
 import org.apache.activemq.util.ByteArrayOutputStream;
 import org.apache.activemq.util.ByteSequence;
+import org.apache.activemq.util.ByteSequenceData;
 import org.apache.activemq.util.MarshallingSupport;
+import org.apache.activemq.util.MarshallingSupport.ActiveMQUnmarshalEOFException;
+import org.apache.activemq.util.ExceptionUtils;
 
 /**
  * 
@@ -154,6 +158,27 @@ public class ActiveMQTextMessageTest extends TestCase {
     public void testTransient() throws Exception {
         Method method = ActiveMQTextMessage.class.getMethod("getRegionDestination", null);
         assertTrue(method.isAnnotationPresent(Transient.class));
+    }
+
+    public void testUnUnmarshalException() throws Exception {
+        ActiveMQTextMessage msg = new ActiveMQTextMessage();
+        msg.setText("content");
+
+        // store and marshal
+        msg.storeContentAndClear();
+        assertNull(msg.text);
+
+        // corrupt the buffer
+        ByteSequenceData.writeIntBig(msg.content, 1000);
+
+        try {
+            msg.getText();
+            fail("Should have thrown exception");
+        } catch (JMSException e) {
+            // expected
+            assertTrue(
+                    ExceptionUtils.getRootCause(e) instanceof ActiveMQUnmarshalEOFException);
+        }
     }
     
     protected void setContent(Message message, String text) throws Exception {

@@ -28,6 +28,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.activemq.ActiveMQMessageFormatException;
 import org.apache.activemq.advisory.AdvisorySupport;
 import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.broker.ConnectionContext;
@@ -58,6 +59,7 @@ import org.apache.activemq.thread.Task;
 import org.apache.activemq.thread.TaskRunner;
 import org.apache.activemq.thread.TaskRunnerFactory;
 import org.apache.activemq.transaction.Synchronization;
+import org.apache.activemq.util.ExceptionUtils;
 import org.apache.activemq.util.SubscriptionKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -754,9 +756,21 @@ public class Topic extends BaseDestination implements Task {
 
         dispatchLock.readLock().lock();
         try {
-            if (!subscriptionRecoveryPolicy.add(context, message)) {
-                return;
+            try {
+                if (!subscriptionRecoveryPolicy.add(context, message)) {
+                    return;
+                }
+            } catch (Exception e) {
+                // Headers can't be read, but dispatch must still run: subs with a selector
+                // won't match and handle acks, and onMessageWithNoConsumers handles no match.
+                ActiveMQMessageFormatException formatError = ExceptionUtils.createMessageFormatException(e);
+                if (formatError != null) {
+                    LOG.warn("Failed to check recovery policy, message is corrupt: {}", e.getMessage(), e);
+                } else {
+                    throw e;
+                }
             }
+
             synchronized (consumers) {
                 if (consumers.isEmpty()) {
                     onMessageWithNoConsumers(context, message);

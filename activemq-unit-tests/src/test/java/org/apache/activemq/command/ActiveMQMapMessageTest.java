@@ -33,6 +33,9 @@ import javax.jms.MessageFormatException;
 import javax.jms.MessageNotReadableException;
 import javax.jms.MessageNotWriteableException;
 
+import org.apache.activemq.util.ByteSequenceData;
+import org.apache.activemq.util.MarshallingSupport.ActiveMQUnmarshalEOFException;
+import org.apache.activemq.util.ExceptionUtils;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -468,4 +471,28 @@ public class ActiveMQMapMessageTest {
         msg.getShort("short");
         msg.getString("string");
     }
+
+    @Test
+    public void testUnmarshalException() throws Exception {
+        ActiveMQMapMessage msg = new ActiveMQMapMessage();
+        msg.setString("test", "test");
+
+        // store and marshal
+        msg.storeContentAndClear();
+        assertTrue(msg.map.isEmpty());
+
+        // corrupt the buffer
+        ByteSequenceData.writeIntBig(msg.content, 1000);
+
+        try {
+            // trigger unmarshalling the map
+            msg.getString("test");
+            fail("Should have thrown exception");
+        } catch (JMSException e) {
+            // expected
+            assertTrue(
+                    ExceptionUtils.getRootCause(e) instanceof ActiveMQUnmarshalEOFException);
+        }
+    }
+
 }

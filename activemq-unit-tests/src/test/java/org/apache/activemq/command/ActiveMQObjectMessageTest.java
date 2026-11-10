@@ -16,6 +16,8 @@
  */
 package org.apache.activemq.command;
 
+
+
 import java.io.IOException;
 
 import javax.jms.JMSException;
@@ -23,6 +25,8 @@ import javax.jms.MessageNotReadableException;
 import javax.jms.MessageNotWriteableException;
 
 import junit.framework.TestCase;
+import org.apache.activemq.util.ByteSequenceData;
+import org.apache.activemq.util.ExceptionUtils;
 
 /**
  * 
@@ -120,6 +124,27 @@ public class ActiveMQObjectMessageTest extends TestCase {
         } catch (MessageNotReadableException e) {
             fail("should be readable");
         } catch (MessageNotWriteableException mnwe) {
+        }
+    }
+
+    public void testUnCompressedException() throws Exception {
+        ActiveMQObjectMessage msg = new ActiveMQObjectMessage();
+        msg.setObject("test");
+
+        // store and marshal
+        msg.storeContentAndClear();
+        assertNull(msg.object);
+
+        // corrupt the buffer
+        ByteSequenceData.writeIntBig(msg.content, 1000);
+
+        try {
+            // trigger unmarshalling the object
+            msg.getObject();
+            fail("Should have thrown exception");
+        } catch (JMSException e) {
+            // uncompressed will have an error from the JDK deserialization
+            assertTrue(ExceptionUtils.getRootCause(e) instanceof IOException);
         }
     }
 

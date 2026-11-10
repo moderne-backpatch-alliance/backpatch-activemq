@@ -104,6 +104,8 @@ import org.apache.activemq.transport.ResponseCorrelator;
 import org.apache.activemq.transport.TransmitCallback;
 import org.apache.activemq.transport.Transport;
 import org.apache.activemq.transport.TransportDisposedIOException;
+import org.apache.activemq.util.ExceptionUtils;
+import org.apache.activemq.ActiveMQMessageFormatException;
 import org.apache.activemq.util.IntrospectionSupport;
 import org.apache.activemq.util.MarshallingSupport;
 import org.apache.activemq.util.NetworkBridgeUtils;
@@ -986,6 +988,15 @@ public class TransportConnection implements Connection, Task, CommandVisitor {
                 if (sub != null) {
                     sub.onFailure();
                 }
+                // A message that can't be read gets a poison ack (DLQ if durable or queue)
+                // so the consumer continues. Throwing would close the connection.
+                ActiveMQMessageFormatException marshallingError = ExceptionUtils.createMessageFormatException(e);
+                if (marshallingError != null) {
+                    handleMessageFormatError(marshallingError, messageDispatch);
+                    // must set to null so when we return the finally block is skipped
+                    messageDispatch = null;
+                    return;
+                }
                 messageDispatch = null;
                 throw e;
             }
@@ -997,6 +1008,34 @@ public class TransportConnection implements Connection, Task, CommandVisitor {
                     sub.onSuccess();
                 }
             }
+        }
+    }
+
+    private void handleMessageFormatError(ActiveMQMessageFormatException e, MessageDispatch messageDispatch) {
+        if (TRANSPORTLOG.isDebugEnabled()) {
+            TRANSPORTLOG.debug("{} had an unexpected Message format error: {}", this, e.getMessage(), e);
+        } else if (TRANSPORTLOG.isWarnEnabled()) {
+            TRANSPORTLOG.warn("{} had an unexpected Message format  error: {}", this, e.getMessage());
+        }
+
+        ConsumerBrokerExchange consumerExchange = getConsumerBrokerExchange(messageDispatch.getConsumerId());
+        try {
+            // acknowledge with the consumer exchange for this dispatch
+            // This should exist because this error happened during dispatch, but if for some
+            // reason it is null it should get handled when delivery is attempted again
+            if (consumerExchange != null) {
+                MessageAck ack = new MessageAck();
+                // Acking with a poison ack will send to the DLQ
+                ack.setAckType(MessageAck.POSION_ACK_TYPE);
+                ack.setPoisonCause(e);
+                ack.setConsumerId(messageDispatch.getConsumerId());
+                ack.setDestination(messageDispatch.getDestination());
+                ack.setMessageID(messageDispatch.getMessage().getMessageId());
+                broker.acknowledge(consumerExchange, ack);
+            }
+        } catch (Exception ex) {
+            TRANSPORTLOG.warn("{} could not acknowledge and send message to the DLQ after"
+                    + " ActiveMQMessageFormatException: {}", this, e.getMessage());
         }
     }
 

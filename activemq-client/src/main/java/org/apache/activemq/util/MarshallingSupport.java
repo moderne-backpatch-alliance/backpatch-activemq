@@ -20,7 +20,9 @@ import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UTFDataFormatException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,13 +30,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import java.util.zip.InflaterInputStream;
+import org.apache.activemq.transport.FrameSizeLimitedFilterInputStream;
 import org.fusesource.hawtbuf.UTF8Buffer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The fixed version of the UTF8 encoding function. Some older JVM's UTF8
  * encoding function breaks when handling large strings.
  */
 public final class MarshallingSupport {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MarshallingSupport.class);
 
     public static final byte NULL = 0;
     public static final byte BOOLEAN_TYPE = 1;
@@ -53,6 +61,14 @@ public final class MarshallingSupport {
 
     private MarshallingSupport() {}
 
+    public static InputStream createInflaterInputStream(InputStream is) {
+        return createFrameLimitedInputStream(Integer.MAX_VALUE, new InflaterInputStream(is));
+    }
+
+    public static InputStream createFrameLimitedInputStream(int maxAvailable, InputStream is) {
+        return new FrameSizeLimitedFilterInputStream(maxAvailable, is);
+    }
+
     public static void marshalPrimitiveMap(Map<String, Object> map, DataOutputStream out) throws IOException {
         if (map == null) {
             out.writeInt(-1);
@@ -67,7 +83,7 @@ public final class MarshallingSupport {
     }
 
     public static Map<String, Object> unmarshalPrimitiveMap(DataInputStream in) throws IOException {
-        return unmarshalPrimitiveMap(in, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
+        return unmarshalPrimitiveMap(in, Integer.MAX_VALUE, Integer.MAX_VALUE, Byte.MAX_VALUE);
     }
 
     public static Map<String, Object> unmarshalPrimitiveMap(DataInputStream in, boolean force) throws IOException {
@@ -79,7 +95,7 @@ public final class MarshallingSupport {
     }
 
     public static Map<String, Object> unmarshalPrimitiveMap(DataInputStream in, int maxPropertySize, boolean force) throws IOException {
-        return unmarshalPrimitiveMap(in, force, maxPropertySize, Integer.MAX_VALUE, Integer.MAX_VALUE, 0);
+        return unmarshalPrimitiveMap(in, force, maxPropertySize, Integer.MAX_VALUE, Byte.MAX_VALUE, 0);
     }
 
     public static Map<String, Object> unmarshalPrimitiveMap(DataInputStream in, int maxPropertySize, int maxBufferSize, int maxDepth) throws IOException {
@@ -98,15 +114,21 @@ public final class MarshallingSupport {
         validateDepth(maxDepth, currentDepth++);
 
         int size = in.readInt();
-        if (size > maxPropertySize) {
-            throw new IOException("Primitive map is larger than the allowed size: " + size);
-        }
+        // validate not larger than configured max number of entries
+        validatePropertySize(size, maxPropertySize);
+
         if (size < 0) {
             return null;
         } else {
-            Map<String, Object> rc = new HashMap<>(size);
+            // The entry count can be valid yet exceed what the stream holds, so check
+            // it against the remaining bytes before pre-allocating.
+            validateBufferSize(in, maxBufferSize, size);
+
+            // As an extra precaution limit to no more than 128 initially
+            Map<String, Object> rc = new HashMap<>(Math.min(128, size));
             for (int i = 0; i < size; i++) {
-                String name = in.readUTF();
+                // validate key is less than max buffer size
+                String name = readUTF(in, maxBufferSize, in.readUnsignedShort()).toString();
                 rc.put(name, unmarshalPrimitive(in, force, maxPropertySize, maxBufferSize, maxDepth, currentDepth));
             }
             return rc;
@@ -125,7 +147,7 @@ public final class MarshallingSupport {
     }
 
     public static List<Object> unmarshalPrimitiveList(DataInputStream in, boolean force) throws IOException {
-        return unmarshalPrimitiveList(in, force, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, 0);
+        return unmarshalPrimitiveList(in, force, Integer.MAX_VALUE, Integer.MAX_VALUE, Byte.MAX_VALUE, 0);
     }
 
     public static List<Object> unmarshalPrimitiveList(DataInputStream in, int maxPropertySize, int maxBufferSize,
@@ -138,8 +160,13 @@ public final class MarshallingSupport {
         // increment after validation, so future calls get the incremented depth
         validateDepth(maxDepth, currentDepth++);
 
-        int size = validateBufferSize(maxBufferSize, in.readInt());
-        List<Object> answer = new ArrayList<>(size);
+        // Limit the pre-allocate size of the list.
+        // We could still exceed total size as we unmarshal, so do a sanity check to verify
+        // the number of items is less than or equal to the remaining bytes
+        int size = validateBufferSize(in, maxBufferSize, in.readInt());
+
+        // As an extra precaution limit to no more than 128 initially
+        List<Object> answer = new ArrayList<>(Math.min(128, size));
         while (size-- > 0) {
             answer.add(unmarshalPrimitive(in, force, maxPropertySize, maxBufferSize, maxDepth, currentDepth));
         }
@@ -187,7 +214,7 @@ public final class MarshallingSupport {
     }
 
     public static Object unmarshalPrimitive(DataInputStream in, boolean force) throws IOException {
-        return unmarshalPrimitive(in, force, Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE, 0);
+        return unmarshalPrimitive(in, force, Integer.MAX_VALUE, Integer.MAX_VALUE, Byte.MAX_VALUE, 0);
     }
 
     private static Object unmarshalPrimitive(DataInputStream in, boolean force, int maxPropertySize, int maxBufferSize,
@@ -220,12 +247,13 @@ public final class MarshallingSupport {
             value = new Double(in.readDouble());
             break;
         case BYTE_ARRAY_TYPE:
-            value = new byte[validateBufferSize(maxBufferSize, in.readInt())];
+            value = new byte[validateBufferSize(in, maxBufferSize, in.readInt())];
             in.readFully((byte[])value);
             break;
         case STRING_TYPE:
+            // force flag means we want to return it as a String and not a Buffer
             if (force) {
-                value = in.readUTF();
+                value = readShortUTF8(in, maxBufferSize);
             } else {
                 value = readUTF(in, maxBufferSize, in.readUnsignedShort());
             }
@@ -258,7 +286,7 @@ public final class MarshallingSupport {
     }
 
     public static UTF8Buffer readUTF(DataInputStream in, int maxLength, int length) throws IOException {
-        validateBufferSize(maxLength, length);
+        validateBufferSize(in, maxLength, length);
         byte[] data = new byte[length];
         in.readFully(data);
         return new UTF8Buffer(data);
@@ -384,12 +412,33 @@ public final class MarshallingSupport {
         return offset;
     }
 
+    // Used to read BIG_STRING_TYPE
+    public static String readUTF8(DataInputStream dataIn) throws IOException {
+        return readUTF8(dataIn, Integer.MAX_VALUE);
+    }
+
+    // Used to read BIG_STRING_TYPE
+    public static String readUTF8(DataInputStream dataIn, int maxBufferSize) throws IOException {
+        return decodeUTF8(dataIn, validateBufferSize(dataIn, maxBufferSize, dataIn.readInt()));
+    }
+
+    // Used to read STRING_TYPE
+    public static String readShortUTF8(DataInputStream dataIn, int maxBufferSize) throws IOException {
+        return decodeUTF8(dataIn, validateBufferSize(dataIn, maxBufferSize, dataIn.readUnsignedShort()));
+    }
+
     public static String readUTF8(DataInput dataIn) throws IOException {
         return readUTF8(dataIn, Integer.MAX_VALUE);
     }
 
     public static String readUTF8(DataInput dataIn, int maxBufferSize) throws IOException {
-        int utflen = validateBufferSize(maxBufferSize, dataIn.readInt());
+        if (dataIn instanceof DataInputStream) {
+            return readUTF8((DataInputStream) dataIn, maxBufferSize);
+        }
+        return decodeUTF8(dataIn, validateBufferSize(maxBufferSize, dataIn.readInt()));
+    }
+
+    private static String decodeUTF8(DataInput dataIn, int utflen) throws IOException {
         if (utflen > -1) {
             byte bytearr[] = new byte[utflen];
             char chararr[] = new char[utflen];
@@ -459,16 +508,41 @@ public final class MarshallingSupport {
         return text;
     }
 
+    private static void validatePropertySize(int size, int maxPropertySize) throws IOException {
+        if (size > maxPropertySize) {
+            throw new ActiveMQUnmarshalEOFException("Primitive map is larger than the allowed size: " + size);
+        }
+    }
+
     private static int validateBufferSize(int maxSize, int size) throws IOException {
         if (size > maxSize) {
-            throw new IOException("Max buffer size: " + maxSize + " exceeded, size: " + size);
+            throw new ActiveMQUnmarshalEOFException("Max buffer size: " + maxSize + " exceeded, size: " + size);
         }
         return size;
     }
 
-    private static void validateDepth(int maxDepth, int currentDepth) throws IOException {
+    private static int validateBufferSize(DataInputStream stream, int maxSize, int size) throws IOException {
+        // The size should never be more than what is greater to read
+        if (size > stream.available()) {
+            throw new ActiveMQUnmarshalEOFException("Read is greater than remaining available data in the stream");
+        }
+
+        if (size > maxSize) {
+            throw new ActiveMQUnmarshalEOFException("Max buffer size: " + maxSize + " exceeded, size: " + size);
+        }
+        return size;
+    }
+
+    private static void validateDepth(int maxDepth, int currentDepth) throws EOFException {
         if (currentDepth > maxDepth) {
-            throw new IOException("Max unmarshaling depth: " + maxDepth + " exceeded, depth: " + currentDepth);
+            throw new ActiveMQUnmarshalEOFException("Max unmarshaling depth: " + maxDepth + " exceeded, depth: " + currentDepth);
         }
     }
+
+    public static class ActiveMQUnmarshalEOFException extends EOFException {
+        public ActiveMQUnmarshalEOFException(String message) {
+            super(message);
+        }
+    }
+
 }
