@@ -47,7 +47,7 @@ public class JmxCreateNCTest {
 
     // A copy of TransportValidationUtils.DENIED_TRANSPORT_SCHEMES, kept here so this test also compiles
     // and runs against a broker that does not have it yet.
-    private static final Set<String> DENIED_TRANSPORT_SCHEMES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList("vm", "http",
+    private static final Set<String> DENIED_TRANSPORT_SCHEMES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList("vm", "http", "https",
             "multicast", "zeroconf", "discovery", "fanout", "mock", "peer", "failover",
             "proxy", "reliable", "simple", "udp", "masterslave")));
 
