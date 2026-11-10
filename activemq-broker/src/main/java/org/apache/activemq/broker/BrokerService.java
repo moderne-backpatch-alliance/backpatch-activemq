@@ -1081,14 +1081,15 @@ public class BrokerService implements Service {
      *
      * @param brokerName
      */
-    private static final String brokerNameReplacedCharsRegExp = "[^a-zA-Z0-9\\.\\_\\-\\:]";
+    // Matches a single character that is invalid in a broker name
+    private static final String INVALID_BROKER_NAME_CHAR_REG_EXP = "[^a-zA-Z0-9._\\-:]";
     public void setBrokerName(String brokerName) {
         if (brokerName == null) {
             throw new NullPointerException("The broker name cannot be null");
         }
-        String str = brokerName.replaceAll(brokerNameReplacedCharsRegExp, "_");
+        String str = brokerName.replaceAll(INVALID_BROKER_NAME_CHAR_REG_EXP, "_");
         if (!str.equals(brokerName)) {
-            LOG.error("Broker Name: {} contained illegal characters matching regExp: {} - replaced with {}", brokerName, brokerNameReplacedCharsRegExp, str);
+            LOG.error("Broker Name: {} contained illegal characters matching regExp: {} - replaced with {}", brokerName, INVALID_BROKER_NAME_CHAR_REG_EXP, str);
         }
         this.brokerName = str.trim();
     }
@@ -2431,7 +2432,6 @@ public class BrokerService implements Service {
         }
         destinationFactory.setRegionBroker(regionBroker);
         regionBroker.setKeepDurableSubsActive(keepDurableSubsActive);
-        regionBroker.setBrokerName(getBrokerName());
         regionBroker.getDestinationStatistics().setEnabled(enableStatistics);
         regionBroker.setAllowTempAutoCreationOnSend(isAllowTempAutoCreationOnSend());
         if (brokerId != null) {
