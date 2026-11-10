@@ -171,7 +171,15 @@ public class Activator implements BundleActivator, SynchronousBundleListener, Ob
     // ================================================================
 
     @Override
-    public Object create(String path) throws IllegalAccessException, InstantiationException, IOException, ClassNotFoundException {
+    public Object create(String path)
+            throws IllegalAccessException, InstantiationException, IOException, ClassNotFoundException {
+        throw new UnsupportedOperationException("Create is not supported without requiredType and allowed impls");
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <T> T create(String path, Class<T> requiredType, Set<Class<? extends T>> allowedImpls)
+            throws IllegalAccessException, InstantiationException, IOException, ClassNotFoundException {
         Class<?> clazz = serviceCache.get(path);
         if (clazz == null) {
             StringBuffer warnings = new StringBuffer();
@@ -198,6 +206,9 @@ public class Activator implements BundleActivator, SynchronousBundleListener, Ob
                     continue;
                 }
 
+                // no reason to cache if invalid so validate before caching
+                FactoryFinder.validateClass(clazz, requiredType, allowedImpls);
+
                 // Yay.. the class was found.  Now cache it.
                 serviceCache.put(path, clazz);
                 wrapper.cachedServices.add(path);
@@ -213,8 +224,12 @@ public class Activator implements BundleActivator, SynchronousBundleListener, Ob
                 }
                 throw new IOException(msg);
             }
+        } else {
+            // Validate cached classes too: this factory is shared by all finders,
+            // so a path may be re-used with a different requiredType
+            FactoryFinder.validateClass(clazz, requiredType, allowedImpls);
         }
-        return clazz.newInstance();
+        return (T) clazz.newInstance();
     }
 
     // ================================================================
