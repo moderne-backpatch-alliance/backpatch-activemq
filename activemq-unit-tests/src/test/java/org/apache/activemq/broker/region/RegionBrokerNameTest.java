@@ -17,9 +17,7 @@
 package org.apache.activemq.broker.region;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
-import java.lang.reflect.Method;
 import java.util.Collections;
 
 import org.apache.activemq.broker.BrokerService;
@@ -60,10 +58,11 @@ public class RegionBrokerNameTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void testBrokerNameCannotBeChanged() {
-        for (Method method : RegionBroker.class.getMethods()) {
-            assertFalse("RegionBroker must not expose a setter for its name", "setBrokerName".equals(method.getName()));
-        }
+        RegionBroker regionBroker = (RegionBroker) brokerService.getRegionBroker();
+        regionBroker.setBrokerName("changed");
+        assertEquals(brokerService.getBrokerName(), regionBroker.getBrokerName());
     }
 
     @Test

@@ -560,6 +560,12 @@ public class RegionBroker extends EmptyBroker {
         return brokerName;
     }
 
+    // Kept so callers still link. The name is fixed by BrokerService at construction,
+    // and that is the point of the fix, so this must not start storing the value.
+    @Deprecated
+    public void setBrokerName(String brokerName) {
+    }
+
     public DestinationStatistics getDestinationStatistics() {
         return destinationStatistics;
     }
