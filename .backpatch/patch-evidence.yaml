@@ -1,6 +1,6 @@
 schema: osera-patch-evidence/0.1.0
 producer: moderne
-release: 5.14.5.1-backpatch-00012
+release: 5.14.5.1-backpatch-00013
 baseline: v5.14.5+backpatch.baseline
 fixes:
   - cve: CVE-2023-46604
@@ -275,12 +275,33 @@ fixes:
       - org.apache.activemq:activemq-rar
       - org.apache.activemq:activemq-web-console
       - org.apache.activemq:apache-activemq
-    note: New in this release; ported onto 5.14.5; fixed at 5.14.5.1-backpatch-00012 (backpatch-activemq@c5432c4).
+    note: Carried from 5.14.5.1-backpatch-00012; ported onto 5.14.5; fixed at 5.14.5.1-backpatch-00012 (backpatch-activemq@c5432c4).
+  - cve: CVE-2026-49434
+    upstream_fix_url: https://github.com/apache/activemq/commit/0927bcb99e18c517728898be9f125589653ee899
+    advisory_url: https://nvd.nist.gov/vuln/detail/CVE-2026-49434
+    patch_commit_url: https://github.com/moderne-backpatch-alliance/backpatch-activemq/compare/e1c01fd~1...86de3c1
+    basis: adapted
+    artifacts:
+      - org.apache.activemq:activemq-client
+      - org.apache.activemq:activemq-openwire-legacy
+      - org.apache.activemq:activemq-broker
+      - org.apache.activemq:activemq-stomp
+      - org.apache.activemq:activemq-mqtt
+      - org.apache.activemq:activemq-amqp
+      - org.apache.activemq:activemq-web
+      - org.apache.activemq:activemq-jdbc-store
+      - org.apache.activemq:activemq-spring
+      - org.apache.activemq:activemq-all
+      - org.apache.activemq:activemq-osgi
+      - org.apache.activemq:activemq-rar
+      - org.apache.activemq:activemq-web-console
+      - org.apache.activemq:apache-activemq
+    note: New in this release; ported onto 5.14.5; fixed at 5.14.5.1-backpatch-00013 (backpatch-activemq@e1c01fd..86de3c1).
 tests:
-  commit: c5432c4362f19fc6f0762848e9ec4ceca99fb81b
+  commit: 86de3c100fcd6a58034b47a2f933ed41e8e832e9
   command: mvn -B -T1 -pl activemq-client,activemq-openwire-legacy,activemq-broker,activemq-stomp,activemq-mqtt,activemq-amqp,activemq-web,activemq-jdbc-store,activemq-spring,activemq-unit-tests,activemq-all,activemq-osgi,activemq-rar,activemq-web-console,assembly -am -Dossindex.skip=true -Dtest=AMQ4126Test,ActiveMQBytesMessageTest,ActiveMQConnectionMetaDataTest,ActiveMQMapMessageTest,ActiveMQMessageFormatExceptionSelectorTest,ActiveMQMessageTest,ActiveMQObjectMessageTest,ActiveMQStreamMessageTest,ActiveMQTextMessageTest,AutoNIOSslTransportBrokerTest,AutoSslTransportBrokerTest,AutoTransportConnectionsTest,BrokerServiceTest,BrokerXmlConfigFromJNDITest,DurableSyncNetworkBridgeAuthTest,FactoryFinderTest,FailedSubscriptionCleanupTest,FrameSizeLimitedFilterInputStreamTest,JMSInteroperabilityTest,JMSMappingOutboundTransformerTest,JmsTempDestinationTest,JmxCreateNCTest,JmxDeniedSchemeNCTest,JmxMasterSlaveNCTest,LdapNetworkConnectorTest,MBeanTest,MQTTAutoNioSslTest,MQTTNIOSSLTest,MQTTTest,MarshallingSupportTest,MessageCompressionTest,NIOSSLBasicTest,NIOSSLLoadTest,NIOSSLTransportBrokerTest,OldUnmarshalSignaturesTest,OpenWireLegacyValidationTest,OpenWireUtilTest,OpenWireValidationTest,ProtocolConverterTest,QueueBrowseServletTest,RegionBrokerNameTest,SimpleMessageRendererTest,SslBrokerServiceTest,SslTransportBrokerTest,SslTransportFactoryTest,SslTransportVerifyHostNameTest,StompAutoNioSslTest,StompAutoSslAuthTest,StompNIOSSLTest,StompSslAuthTest,StompTest,TwoSecureBrokerRequestReplyTest,VMTransportFactoryTest,ViewUtilsTest,WireFormatInfoTest -Dsurefire.failIfNoSpecifiedTests=false -DfailIfNoTests=false -Dmaven.test.failure.ignore=true clean test
   runtime: openjdk version 1.8.0_382, Apache Maven 3.5.4
-  report: activemq-client-5.14.5.1-backpatch-00012-tests.zip
-  report_sha256: afb503688c55af557dceac6a7095112399d46841254f52beb3ce281b57775e9c
+  report: activemq-client-5.14.5.1-backpatch-00013-tests.zip
+  report_sha256: c77126c61d0b64af67f090ac21d82f0fb981e9409d991f597e73b87c4b6ac4b9
   result: pass
-  note: 1643 tests at the patch commit, 24 of them skipped by the suite, 0 failed, 0 errors. The suite ran in Docker (azul/zulu-openjdk:8) with Maven 3.5.4. Deployed with the backpatch Maven extension built from commit 7e8c6f2fea (branch fix/extension-test-jar-resolution), which resolves a reactor module's tests jar from the reactor.
+  note: 1645 tests at the patch commit, 24 of them skipped by the suite, 0 failed, 0 errors. The suite ran in Docker (azul/zulu-openjdk:8) with Maven 3.5.4. Deployed with the backpatch Maven extension built from commit 7e8c6f2fea (branch fix/extension-test-jar-resolution), which resolves a reactor module's tests jar from the reactor.
