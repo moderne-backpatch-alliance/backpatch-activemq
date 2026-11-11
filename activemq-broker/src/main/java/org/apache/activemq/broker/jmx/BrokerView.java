@@ -24,6 +24,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.management.ObjectName;
@@ -40,12 +41,16 @@ import org.apache.activemq.command.ConsumerInfo;
 import org.apache.activemq.command.RemoveSubscriptionInfo;
 import org.apache.activemq.network.NetworkConnector;
 import org.apache.activemq.util.BrokerSupport;
+import org.apache.activemq.util.TransportValidationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class BrokerView implements BrokerViewMBean {
 
     private static final Logger LOG = LoggerFactory.getLogger(BrokerView.class);
+
+    @Deprecated
+    public static final Set<String> DENIED_TRANSPORT_SCHEMES = TransportValidationUtils.DENIED_TRANSPORT_SCHEMES;
 
     ManagedRegionBroker broker;
 
