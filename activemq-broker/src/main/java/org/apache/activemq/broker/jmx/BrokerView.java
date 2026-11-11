@@ -16,17 +16,14 @@
  */
 package org.apache.activemq.broker.jmx;
 
+import static org.apache.activemq.util.TransportValidationUtils.validateAllowedUrl;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.management.ObjectName;
@@ -43,17 +40,12 @@ import org.apache.activemq.command.ConsumerInfo;
 import org.apache.activemq.command.RemoveSubscriptionInfo;
 import org.apache.activemq.network.NetworkConnector;
 import org.apache.activemq.util.BrokerSupport;
-import org.apache.activemq.util.URISupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class BrokerView implements BrokerViewMBean {
 
     private static final Logger LOG = LoggerFactory.getLogger(BrokerView.class);
-
-    public static final Set<String> DENIED_TRANSPORT_SCHEMES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList("vm", "http",
-            "multicast", "zeroconf", "discovery", "fanout", "mock", "peer", "failover",
-            "proxy", "reliable", "simple", "udp", "masterslave")));
 
     ManagedRegionBroker broker;
 
@@ -539,53 +531,5 @@ public class BrokerView implements BrokerViewMBean {
         }
 
         return context;
-    }
-
-    private static void validateAllowedUrl(String uriString) throws URISyntaxException {
-        validateAllowedUri(new URI(uriString), 0);
-    }
-
-    // Validate the URI does not contain a denied transport scheme
-    private static void validateAllowedUri(URI uri, int depth) throws URISyntaxException {
-        // Don't allow more than 5 nested URIs to prevent blowing the stack
-        if (depth > 5) {
-            throw new IllegalArgumentException("URI can't contain more than 5 nested composite URIs");
-        }
-
-        // First check the main URI scheme
-        validateAllowedScheme(uri.getScheme());
-
-        // isCompositeURI misses nested URIs and URIs without parentheses, so parse as
-        // the transports do and check each parsed component.
-        final URISupport.CompositeData data;
-        try {
-            data = URISupport.parseComposite(uri);
-        } catch (URISyntaxException e) {
-            // If this is not a valid URI then we can stop checking
-            // This can happen when parsing a nested URI and at the last portion
-            return;
-        }
-
-        if (data.getComponents() != null) {
-            depth++;
-            for (URI component : data.getComponents()) {
-                // Each URI could be a nested and/or composite URI so call validateAllowedUri()
-                // to validate it. If the scheme is null then the original URI is not composite
-                // or nested so we can skip the check, and we are finished.
-                if (component.getScheme() != null) {
-                    validateAllowedUri(component, depth);
-                }
-            }
-        }
-    }
-
-    // Check all denied schemes
-    private static void validateAllowedScheme(String scheme) {
-        for (String denied : DENIED_TRANSPORT_SCHEMES) {
-            // The schemes should be case-insensitive but ignore case as a precaution
-            if (scheme.equalsIgnoreCase(denied)) {
-                throw new IllegalArgumentException("Transport scheme '" + scheme + "' is not allowed");
-            }
-        }
     }
 }
