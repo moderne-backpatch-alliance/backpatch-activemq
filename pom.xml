@@ -54,6 +54,7 @@
     <commons-collections-version>3.2.2</commons-collections-version>
     <commons-daemon-version>1.0.15</commons-daemon-version>
     <commons-dbcp2-version>2.1.1</commons-dbcp2-version>
+    <commons-text-version>1.15.0</commons-text-version>
     <commons-io-version>2.5</commons-io-version>
     <commons-lang-version>2.6</commons-lang-version>
     <commons-logging-version>1.2</commons-logging-version>
@@ -1070,6 +1071,12 @@
         <groupId>org.apache.ant</groupId>
         <artifactId>ant</artifactId>
         <version>${ant-version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-text</artifactId>
+        <version>${commons-text-version}</version>
       </dependency>
 
       <!-- ACTIVEMQ-WEB Specific Dependencies -->
