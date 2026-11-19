@@ -1,6 +1,6 @@
 schema: osera-patch-evidence/0.1.0
 producer: moderne
-release: 5.14.5.1-backpatch-00003
+release: 5.14.5.1-backpatch-00004
 baseline: v5.14.5+backpatch.baseline
 fixes:
   - cve: CVE-2023-46604
@@ -65,12 +65,33 @@ fixes:
       - org.apache.activemq:activemq-rar
       - org.apache.activemq:activemq-web-console
       - org.apache.activemq:apache-activemq
-    note: New in this release; ported onto 5.14.5; fixed at 5.14.5.1-backpatch-00003 (backpatch-activemq@61bff27..993ae69).
+    note: Carried from 5.14.5.1-backpatch-00003; ported onto 5.14.5; fixed at 5.14.5.1-backpatch-00003 (backpatch-activemq@61bff27..993ae69).
+  - cve: CVE-2026-33227
+    upstream_fix_url: https://github.com/advisories/GHSA-h2h4-5m64-m273
+    advisory_url: https://nvd.nist.gov/vuln/detail/CVE-2026-33227
+    patch_commit_url: https://github.com/moderne-backpatch-alliance/backpatch-activemq/compare/872e6fe~1...0cb680b
+    basis: adapted
+    artifacts:
+      - org.apache.activemq:activemq-client
+      - org.apache.activemq:activemq-openwire-legacy
+      - org.apache.activemq:activemq-broker
+      - org.apache.activemq:activemq-stomp
+      - org.apache.activemq:activemq-mqtt
+      - org.apache.activemq:activemq-amqp
+      - org.apache.activemq:activemq-web
+      - org.apache.activemq:activemq-jdbc-store
+      - org.apache.activemq:activemq-spring
+      - org.apache.activemq:activemq-all
+      - org.apache.activemq:activemq-osgi
+      - org.apache.activemq:activemq-rar
+      - org.apache.activemq:activemq-web-console
+      - org.apache.activemq:apache-activemq
+    note: New in this release; ported onto 5.14.5; fixed at 5.14.5.1-backpatch-00004 (backpatch-activemq@872e6fe..0cb680b). Classes that FactoryFinder loads must now be of the type the caller asks for, and STOMP frame translators and web console queue browse views must also be on an allow list, as in upstream's fix. An application with its own frame translator or queue browse view outside the default list now fails to load it. The lists are set with the system properties org.apache.activemq.stomp.FRAME_TRANSLATOR_CLASSES and org.apache.activemq.web.view.QUEUE_BROWSE_CLASSES.
 tests:
-  commit: 993ae69fee0cd09854ac97b4389db4f343f18db7
-  command: mvn -B -T1 -pl activemq-client,activemq-openwire-legacy,activemq-broker,activemq-stomp,activemq-mqtt,activemq-amqp,activemq-web,activemq-jdbc-store,activemq-spring,activemq-unit-tests,activemq-all,activemq-osgi,activemq-rar,activemq-web-console,assembly -am -Dossindex.skip=true -Dtest=AMQ4126Test,ActiveMQBytesMessageTest,ActiveMQConnectionMetaDataTest,ActiveMQMapMessageTest,ActiveMQMessageFormatExceptionSelectorTest,ActiveMQMessageTest,ActiveMQObjectMessageTest,ActiveMQStreamMessageTest,ActiveMQTextMessageTest,AutoNIOSslTransportBrokerTest,AutoSslTransportBrokerTest,AutoTransportConnectionsTest,BrokerServiceTest,BrokerXmlConfigFromJNDITest,DurableSyncNetworkBridgeAuthTest,FactoryFinderTest,FailedSubscriptionCleanupTest,FrameSizeLimitedFilterInputStreamTest,JMSInteroperabilityTest,JMSMappingOutboundTransformerTest,JmsTempDestinationTest,JmxCreateNCTest,JmxDeniedSchemeNCTest,JmxMasterSlaveNCTest,LdapNetworkConnectorTest,MBeanTest,MQTTAutoNioSslTest,MQTTNIOSSLTest,MQTTTest,MarshallingSupportTest,MessageCompressionTest,NIOSSLBasicTest,NIOSSLLoadTest,NIOSSLTransportBrokerTest,OldUnmarshalSignaturesTest,OpenWireLegacyValidationTest,OpenWireUtilTest,OpenWireValidationTest,ProtocolConverterTest,QueueBrowseServletTest,RegionBrokerNameTest,SimpleMessageRendererTest,SslBrokerServiceTest,SslTransportBrokerTest,SslTransportFactoryTest,SslTransportVerifyHostNameTest,StompAutoNioSslTest,StompAutoSslAuthTest,StompNIOSSLTest,StompSslAuthTest,StompTest,TwoSecureBrokerRequestReplyTest,VMTransportFactoryTest,ViewUtilsTest,WireFormatInfoTest -Dsurefire.failIfNoSpecifiedTests=false -DfailIfNoTests=false -Dmaven.test.failure.ignore=true clean test
-  runtime: openjdk version 1.8.0_382, Apache Maven 3.5.4
-  report: activemq-client-5.14.5.1-backpatch-00003-tests.zip
-  report_sha256: 6217e06b426aae502c934bb26f6043b472b17b23bb1a519c8b3636aa188002b2
+  commit: 0cb680b9dc0aae37674c80075f04690d6348e068
+  command: mvn -B -T1 -pl activemq-client,activemq-openwire-legacy,activemq-broker,activemq-stomp,activemq-mqtt,activemq-amqp,activemq-web,activemq-jdbc-store,activemq-spring,activemq-unit-tests,activemq-all,activemq-osgi,activemq-rar,activemq-web-console,assembly -am -Dossindex.skip=true -Dtest=AutoNIOSslTransportBrokerTest,AutoSslTransportBrokerTest,AutoTransportConnectionsTest,FactoryFinderTest,NIOSSLBasicTest,NIOSSLLoadTest,NIOSSLTransportBrokerTest,OldUnmarshalSignaturesTest,OpenWireLegacyValidationTest,OpenWireUtilTest,OpenWireValidationTest,ProtocolConverterTest,QueueBrowseServletTest,SslBrokerServiceTest,SslTransportBrokerTest,SslTransportFactoryTest,SslTransportVerifyHostNameTest,StompAutoSslAuthTest,StompSslAuthTest,StompTest -Dsurefire.failIfNoSpecifiedTests=false -DfailIfNoTests=false -Dmaven.test.failure.ignore=true clean test
+  runtime: openjdk version 1.8.0_512, Apache Maven 3.5.4
+  report: activemq-client-5.14.5.1-backpatch-00004-tests.zip
+  report_sha256: b0f1c9a9d1d408f342ab38d3d31a7fe466748152ab4c93de411a283b526ff87f
   result: pass
-  note: "1460 tests at the patch commit, 8 of them skipped by the suite, 0 failed, 0 errors. Apart from 39 fail-before tests of CVEs this release does not fix yet, in those CVEs' own test classes, which pass once their fix lands: org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationUnknownTranslator, org.apache.activemq.transport.stomp.StompNIOSSLTest#testDisconnectDoesNotDeadlockBroker, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSendMessageWithDelay, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationReceiveObject, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationReceiveXMLMap, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSubscribeWithInvalidSelector, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSubscribeWithMessageSentWithProperties, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransactionsWithMultipleDestinations, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSubscribeWithReceiptNotAuthorized, org.apache.activemq.transport.stomp.StompNIOSSLTest#testJMSXGroupIdCanBeSet, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTempDestination, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSendMultipleBytesMessages, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSubscribeWithAutoAckAndBooleanSelector, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSubscribeNotAuthorized, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSendMessageWithStandardHeaders, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationIgnoreTransformation, org.apache.activemq.transport.stomp.StompNIOSSLTest#testReceiptNewQueue, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSubscribeWithAutoAck, org.apache.activemq.transport.stomp.StompNIOSSLTest#testReplyToAcrossConnections, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSubscribeWithClientAckedAndContentLength, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationSubscribeXML, org.apache.activemq.transport.stomp.StompNIOSSLTest#testPersistent, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransactionCommit, org.apache.activemq.transport.stomp.StompNIOSSLTest#testReceipts, org.apache.activemq.transport.stomp.StompNIOSSLTest#testUnsubscribe, org.apache.activemq.transport.stomp.StompNIOSSLTest#testPrefetchSize, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSendMessage, org.apache.activemq.transport.stomp.StompNIOSSLTest#testDurableUnsub, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSubscribeWithAutoAckAndNumericSelector, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationSendJSONObject, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationReceiveBytesMessage, org.apache.activemq.transport.stomp.StompNIOSSLTest#testHeaderValuesAreTrimmed1_0, org.apache.activemq.transport.stomp.StompNIOSSLTest#testBytesMessageWithNulls, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSubscribeWithAutoAckAndSelector, org.apache.activemq.transport.stomp.StompNIOSSLTest#testConnect, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransactionRollback, org.apache.activemq.transport.stomp.StompNIOSSLTest#testMessagesAreInOrder, org.apache.activemq.transport.stomp.StompNIOSSLTest#testExpire, org.apache.activemq.bugs.AMQ4126Test#testStompNIOSSLWithCertificate. The suite ran in Docker (azul/zulu-openjdk:8) with Maven 3.5.4. Deployed with the backpatch Maven extension built from commit 7e8c6f2fea (branch fix/extension-test-jar-resolution), which resolves a reactor module's tests jar from the reactor."
+  note: "919 tests at the patch commit, 1 of them skipped by the suite, 0 failed, 0 errors. The suite ran in Docker (azul/zulu-openjdk:8) with Maven 3.5.4, again on 2026-11-19 under the per-counter rule: this release's own CVE test classes, those of CVEs fixed at earlier counters, and the line's test classes that no CVE names; no later CVE's classes. Deployed with the backpatch Maven extension built from commit 7e8c6f2fea (branch fix/extension-test-jar-resolution), which resolves a reactor module's tests jar from the reactor."
