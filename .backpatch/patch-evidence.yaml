@@ -1,6 +1,6 @@
 schema: osera-patch-evidence/0.1.0
 producer: moderne
-release: 5.16.8.1-backpatch-00012
+release: 5.16.8.1-backpatch-00013
 baseline: v5.16.8+backpatch.baseline
 fixes:
   - cve: CVE-2026-39304
@@ -262,12 +262,11 @@ fixes:
       - org.apache.activemq:activemq-rar
       - org.apache.activemq:activemq-web-console
       - org.apache.activemq:apache-activemq
-    note: New in this release; ported onto 5.16.8; fixed at 5.16.8.1-backpatch-00012 (backpatch-activemq@e7a7680..70ea85f). Temporary queues and topics now refuse a consumer from any connection other than the one that created them, as in upstream 5.19.8. A network bridge without advisories that statically includes temporary queues is refused (InvalidDestinationException) when it subscribes to another connection's temporary queue, so request and reply over such a bridge stops working. Bridges between trusted brokers can set allowTempDestinationStealing="true" on a tempQueue or tempTopic policy entry, which leaves the CVE open for those destinations.
+    note: Carried from 5.16.8.1-backpatch-00012; ported onto 5.16.8; fixed at 5.16.8.1-backpatch-00012 (backpatch-activemq@e7a7680..70ea85f). Temporary queues and topics now refuse a consumer from any connection other than the one that created them, as in upstream 5.19.8. A network bridge without advisories that statically includes temporary queues is refused (InvalidDestinationException) when it subscribes to another connection's temporary queue, so request and reply over such a bridge stops working. Bridges between trusted brokers can set allowTempDestinationStealing="true" on a tempQueue or tempTopic policy entry, which leaves the CVE open for those destinations.
 tests:
-  commit: 70ea85f2d0d183819a4f3eea77c2a8ae40a4c6df
-  command: mvn -B -T1 -pl activemq-client,activemq-broker,activemq-web,activemq-stomp,activemq-mqtt,activemq-amqp,activemq-jdbc-store,activemq-spring,activemq-unit-tests,activemq-all,activemq-osgi,activemq-rar,activemq-web-console,assembly -am -Dossindex.skip=true -Dtest=ActiveMQConnectionFactoryXBeanTest,ActiveMQConnectionMetaDataTest,ActiveMQMapMessageTest,ActiveMQMessageFormatExceptionSelectorTest,ActiveMQMessageTest,ActiveMQObjectMessageTest,ActiveMQStreamMessageTest,ActiveMQTextMessageTest,AutoNIOSslTransportBrokerTest,AutoSslTransportBrokerTest,BrokerServiceTest,BrokerXmlConfigFromJNDITest,DestinationViewBrokerNameTest,DurableSyncNetworkBridgeAuthTest,DurableSyncNetworkBridgeTest,FactoryFinderStringConstructorTest,FactoryFinderTest,FailedSubscriptionCleanupTest,FrameSizeLimitedFilterInputStreamTest,JMSClientAutoNioPlusSslTest,JMSClientNioPlusSslTest,JMSClientSslTest,JMSInteroperabilityTest,JmsTempDestinationTest,JmxCreateNCTest,LdapNetworkConnectorTest,MBeanTest,MQTTAutoNioSslTest,MQTTNIOSSLTest,MQTTTest,MarshallingSupportTest,NIOSSLBasicTest,NIOSSLTransportBrokerTest,ProtocolConverterTest,QueueBrowseServletTest,SimpleMessageRendererTest,SslTransportBrokerTest,StompAutoNioSslTest,StompNIOSSLTest,StompSslAuthTest,StompTest,TwoSecureBrokerRequestReplyTest,UtilsTest,VMTransportFactoryTest,ViewUtilsTest,WireFormatInfoTest,XBeanBrokerFactoryTest -Dsurefire.failIfNoSpecifiedTests=false -DfailIfNoTests=false -Dmaven.test.failure.ignore=true clean test
-  runtime: openjdk version 1.8.0_382, Apache Maven 3.9.16
-  report: activemq-client-5.16.8.1-backpatch-00012-tests.zip
-  report_sha256: 7e06f9bb047987793d5ef6d6f4edb02cf679bcf054d7e20c9f068cb322a5db8c
+  commit: f7c1c57958dbb3192b9f4147706fd7016fc28090
+  command: none in this repository
+  runtime: none, no build or test ran for this release
+  report: carried, see the evidence of the release named in the note
   result: pass
-  note: 1584 tests at the patch commit, 27 of them skipped by the suite, 0 failed, 0 errors. From 00004 to 00010 the suite ran in Docker (azul/zulu-openjdk:8) after a suite hang on macOS; 00001 to 00003 ran on macOS. The default backpatch Maven extension resolves activemq-client's tests jar for activemq-openwire-legacy's test compile at the baseline 5.16.8; that is test scope in a module this line does not publish, so no published artifact changes. 00011 ran the full suite instead of the CVE test classes; 00012 ran the CVE test classes in Docker again.
+  note: "this release is a tooling update, it carries no new fix, nothing ran here; its test provenance is tooling-2026-11-19-activemq-5.16: a tooling update of moderne-backpatch-alliance/backpatch-activemq at v5.16.8.1-backpatch-00012, whose .backpatch/patch-evidence.yaml says what ran"
