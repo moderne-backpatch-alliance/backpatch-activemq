@@ -1,6 +1,6 @@
 schema: osera-patch-evidence/0.1.0
 producer: moderne
-release: 5.14.5.1-backpatch-00001
+release: 5.14.5.1-backpatch-00002
 baseline: v5.14.5+backpatch.baseline
 fixes:
   - cve: CVE-2023-46604
@@ -23,12 +23,33 @@ fixes:
       - org.apache.activemq:activemq-rar
       - org.apache.activemq:activemq-web-console
       - org.apache.activemq:apache-activemq
-    note: New in this release; ported onto 5.14.5; fixed at 5.14.5.1-backpatch-00001 (backpatch-activemq@fd827ac).
+    note: Carried from 5.14.5.1-backpatch-00001; ported onto 5.14.5; fixed at 5.14.5.1-backpatch-00001 (backpatch-activemq@fd827ac).
+  - cve: CVE-2018-11775
+    upstream_fix_url: https://github.com/advisories/GHSA-m9w8-v359-9ffr
+    advisory_url: https://nvd.nist.gov/vuln/detail/CVE-2018-11775
+    patch_commit_url: https://github.com/moderne-backpatch-alliance/backpatch-activemq/compare/5fe34ce~1...320cdbf
+    basis: adapted
+    artifacts:
+      - org.apache.activemq:activemq-client
+      - org.apache.activemq:activemq-openwire-legacy
+      - org.apache.activemq:activemq-broker
+      - org.apache.activemq:activemq-stomp
+      - org.apache.activemq:activemq-mqtt
+      - org.apache.activemq:activemq-amqp
+      - org.apache.activemq:activemq-web
+      - org.apache.activemq:activemq-jdbc-store
+      - org.apache.activemq:activemq-spring
+      - org.apache.activemq:activemq-all
+      - org.apache.activemq:activemq-osgi
+      - org.apache.activemq:activemq-rar
+      - org.apache.activemq:activemq-web-console
+      - org.apache.activemq:apache-activemq
+    note: New in this release; ported onto 5.14.5; fixed at 5.14.5.1-backpatch-00002 (backpatch-activemq@5fe34ce..320cdbf). Clients connecting over ssl:// now check the broker's host name against its certificate by default, as in upstream's fix, so a client whose broker certificate does not name the host it connects to now fails to connect. Server connectors and the nio+ssl transport keep the check off by default, as upstream settled on; transport.verifyHostName=true turns it on for a server connector.
 tests:
-  commit: fd827ac2fd11b1f5c13c970daec53a2f75c4bcc7
-  command: mvn -B -T1 -pl activemq-client,activemq-openwire-legacy,activemq-broker,activemq-stomp,activemq-mqtt,activemq-amqp,activemq-web,activemq-jdbc-store,activemq-spring,activemq-unit-tests,activemq-all,activemq-osgi,activemq-rar,activemq-web-console,assembly -am -Dossindex.skip=true -Dtest=AMQ4126Test,ActiveMQBytesMessageTest,ActiveMQConnectionMetaDataTest,ActiveMQMapMessageTest,ActiveMQMessageFormatExceptionSelectorTest,ActiveMQMessageTest,ActiveMQObjectMessageTest,ActiveMQStreamMessageTest,ActiveMQTextMessageTest,AutoNIOSslTransportBrokerTest,AutoSslTransportBrokerTest,AutoTransportConnectionsTest,BrokerServiceTest,BrokerXmlConfigFromJNDITest,DurableSyncNetworkBridgeAuthTest,FactoryFinderTest,FailedSubscriptionCleanupTest,FrameSizeLimitedFilterInputStreamTest,JMSInteroperabilityTest,JMSMappingOutboundTransformerTest,JmsTempDestinationTest,JmxCreateNCTest,JmxDeniedSchemeNCTest,JmxMasterSlaveNCTest,LdapNetworkConnectorTest,MBeanTest,MQTTAutoNioSslTest,MQTTNIOSSLTest,MQTTTest,MarshallingSupportTest,MessageCompressionTest,NIOSSLBasicTest,NIOSSLLoadTest,NIOSSLTransportBrokerTest,OldUnmarshalSignaturesTest,OpenWireLegacyValidationTest,OpenWireUtilTest,OpenWireValidationTest,ProtocolConverterTest,QueueBrowseServletTest,RegionBrokerNameTest,SimpleMessageRendererTest,SslBrokerServiceTest,SslTransportBrokerTest,SslTransportFactoryTest,SslTransportVerifyHostNameTest,StompAutoNioSslTest,StompAutoSslAuthTest,StompNIOSSLTest,StompSslAuthTest,StompTest,TwoSecureBrokerRequestReplyTest,VMTransportFactoryTest,ViewUtilsTest,WireFormatInfoTest -Dsurefire.failIfNoSpecifiedTests=false -DfailIfNoTests=false -Dmaven.test.failure.ignore=true clean test
-  runtime: openjdk version 1.8.0_382, Apache Maven 3.5.4
-  report: activemq-client-5.14.5.1-backpatch-00001-tests.zip
-  report_sha256: efaf9751cf2d57872b8a56ea904907dbd42f04df38c68b19c08bcd5d7c299f95
+  commit: 320cdbf34278fca719baab5d13f89907460fe72f
+  command: mvn -B -T1 -pl activemq-client,activemq-openwire-legacy,activemq-broker,activemq-stomp,activemq-mqtt,activemq-amqp,activemq-web,activemq-jdbc-store,activemq-spring,activemq-unit-tests,activemq-all,activemq-osgi,activemq-rar,activemq-web-console,assembly -am -Dossindex.skip=true -Dtest=AutoNIOSslTransportBrokerTest,AutoSslTransportBrokerTest,AutoTransportConnectionsTest,NIOSSLBasicTest,NIOSSLLoadTest,NIOSSLTransportBrokerTest,OpenWireLegacyValidationTest,OpenWireValidationTest,SslBrokerServiceTest,SslTransportBrokerTest,SslTransportFactoryTest,SslTransportVerifyHostNameTest,StompAutoSslAuthTest,StompSslAuthTest -Dsurefire.failIfNoSpecifiedTests=false -DfailIfNoTests=false -Dmaven.test.failure.ignore=true clean test
+  runtime: openjdk version 1.8.0_512, Apache Maven 3.5.4
+  report: activemq-client-5.14.5.1-backpatch-00002-tests.zip
+  report_sha256: 7c65318e15cca8d766256a4339e25052e09158b19d0e612d0570d2a741b72898
   result: pass
-  note: "1391 tests at the patch commit, 8 of them skipped by the suite, 0 failed, 0 errors. Apart from 24 fail-before tests of CVEs this release does not fix yet, in those CVEs' own test classes, which pass once their fix lands: org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationUnknownTranslator, org.apache.activemq.transport.stomp.StompNIOSSLTest#testDisconnectDoesNotDeadlockBroker, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSendMessageWithDelay, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationReceiveXMLMap, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSubscribeWithInvalidSelector, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSubscribeWithMessageSentWithProperties, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransactionsWithMultipleDestinations, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSubscribeWithReceiptNotAuthorized, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTempDestination, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSendMultipleBytesMessages, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationIgnoreTransformation, org.apache.activemq.transport.stomp.StompNIOSSLTest#testReceiptNewQueue, org.apache.activemq.transport.stomp.StompNIOSSLTest#testReplyToAcrossConnections, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationSendXMLMap, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSubscribeWithClientAckedAndContentLength, org.apache.activemq.transport.stomp.StompNIOSSLTest#testTransformationSubscribeXML, org.apache.activemq.transport.stomp.StompNIOSSLTest#testPersistent, org.apache.activemq.transport.stomp.StompNIOSSLTest#testReceipts, org.apache.activemq.transport.stomp.StompNIOSSLTest#testUnsubscribe, org.apache.activemq.transport.stomp.StompNIOSSLTest#testSendMessage, org.apache.activemq.transport.stomp.StompNIOSSLTest#testDurableUnsub, org.apache.activemq.bugs.AMQ4126Test#testStompNIOSSLWithCertificate, org.apache.activemq.transport.nio.NIOSSLBasicTest#enabledCipherSuites, org.apache.activemq.transport.nio.NIOSSLLoadTest#testLoad. The suite ran in Docker (azul/zulu-openjdk:8) with Maven 3.5.4. Deployed with the backpatch Maven extension built from commit 7e8c6f2fea (branch fix/extension-test-jar-resolution), which resolves a reactor module's tests jar from the reactor."
+  note: "745 tests at the patch commit, 1 of them skipped by the suite, 0 failed, 0 errors. The suite ran in Docker (azul/zulu-openjdk:8) with Maven 3.5.4, again on 2026-11-19 under the per-counter rule: this release's own CVE test classes, those of CVEs fixed at earlier counters, and the line's test classes that no CVE names; no later CVE's classes. Deployed with the backpatch Maven extension built from commit 7e8c6f2fea (branch fix/extension-test-jar-resolution), which resolves a reactor module's tests jar from the reactor."
