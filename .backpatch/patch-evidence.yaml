@@ -1,6 +1,6 @@
 schema: osera-patch-evidence/0.1.0
 producer: moderne
-release: 5.14.5.1-backpatch-00014
+release: 5.14.5.1-backpatch-00015
 baseline: v5.14.5+backpatch.baseline
 fixes:
   - cve: CVE-2023-46604
@@ -317,12 +317,33 @@ fixes:
       - org.apache.activemq:activemq-rar
       - org.apache.activemq:activemq-web-console
       - org.apache.activemq:apache-activemq
-    note: New in this release; ported onto 5.14.5; fixed at 5.14.5.1-backpatch-00014 (backpatch-activemq@5b95a5c..99c1a2b). Temporary queues and topics now refuse a consumer from any connection other than the one that created them, as in upstream 5.19.8. A network bridge without advisories that statically includes temporary queues is refused (InvalidDestinationException) when it subscribes to another connection's temporary queue, so request and reply over such a bridge stops working. Bridges between trusted brokers can set allowTempDestinationStealing="true" on a tempQueue or tempTopic policy entry, which leaves the CVE open for those destinations. This release ships with RequestReplyNoAdvisoryNetworkTest's three tests failing for that reason and AMQ3274Test failing intermittently.
+    note: Carried from 5.14.5.1-backpatch-00014; ported onto 5.14.5; fixed at 5.14.5.1-backpatch-00014 (backpatch-activemq@5b95a5c..99c1a2b). Temporary queues and topics now refuse a consumer from any connection other than the one that created them, as in upstream 5.19.8. A network bridge without advisories that statically includes temporary queues is refused (InvalidDestinationException) when it subscribes to another connection's temporary queue, so request and reply over such a bridge stops working. Bridges between trusted brokers can set allowTempDestinationStealing="true" on a tempQueue or tempTopic policy entry, which leaves the CVE open for those destinations. This release ships with RequestReplyNoAdvisoryNetworkTest's three tests failing for that reason and AMQ3274Test failing intermittently.
+  - cve: CVE-2026-41043
+    upstream_fix_url: https://github.com/apache/activemq/commit/a65f8860dafb50c848127fa95ed00cbd27952f87
+    advisory_url: https://nvd.nist.gov/vuln/detail/CVE-2026-41043
+    patch_commit_url: https://github.com/moderne-backpatch-alliance/backpatch-activemq/compare/ad97ff4~1...001acb8
+    basis: adapted
+    artifacts:
+      - org.apache.activemq:activemq-client
+      - org.apache.activemq:activemq-openwire-legacy
+      - org.apache.activemq:activemq-broker
+      - org.apache.activemq:activemq-stomp
+      - org.apache.activemq:activemq-mqtt
+      - org.apache.activemq:activemq-amqp
+      - org.apache.activemq:activemq-web
+      - org.apache.activemq:activemq-jdbc-store
+      - org.apache.activemq:activemq-spring
+      - org.apache.activemq:activemq-all
+      - org.apache.activemq:activemq-osgi
+      - org.apache.activemq:activemq-rar
+      - org.apache.activemq:activemq-web-console
+      - org.apache.activemq:apache-activemq
+    note: New in this release; ported onto 5.14.5; fixed at 5.14.5.1-backpatch-00015 (backpatch-activemq@ad97ff4..001acb8).
 tests:
-  commit: 99c1a2b4fd1d6862520791d22d581d1f959d8c8a
+  commit: 001acb8fb09a757324ab1c1cbdbea2a1fc0ca2ed
   command: mvn -B -T1 -pl activemq-client,activemq-openwire-legacy,activemq-broker,activemq-stomp,activemq-mqtt,activemq-amqp,activemq-web,activemq-jdbc-store,activemq-spring,activemq-unit-tests,activemq-all,activemq-osgi,activemq-rar,activemq-web-console,assembly -am -Dossindex.skip=true -Dtest=AMQ4126Test,ActiveMQBytesMessageTest,ActiveMQConnectionMetaDataTest,ActiveMQMapMessageTest,ActiveMQMessageFormatExceptionSelectorTest,ActiveMQMessageTest,ActiveMQObjectMessageTest,ActiveMQStreamMessageTest,ActiveMQTextMessageTest,AutoNIOSslTransportBrokerTest,AutoSslTransportBrokerTest,AutoTransportConnectionsTest,BrokerServiceTest,BrokerXmlConfigFromJNDITest,DurableSyncNetworkBridgeAuthTest,FactoryFinderTest,FailedSubscriptionCleanupTest,FrameSizeLimitedFilterInputStreamTest,JMSInteroperabilityTest,JMSMappingOutboundTransformerTest,JmsTempDestinationTest,JmxCreateNCTest,JmxDeniedSchemeNCTest,JmxMasterSlaveNCTest,LdapNetworkConnectorTest,MBeanTest,MQTTAutoNioSslTest,MQTTNIOSSLTest,MQTTTest,MarshallingSupportTest,MessageCompressionTest,NIOSSLBasicTest,NIOSSLLoadTest,NIOSSLTransportBrokerTest,OldUnmarshalSignaturesTest,OpenWireLegacyValidationTest,OpenWireUtilTest,OpenWireValidationTest,ProtocolConverterTest,QueueBrowseServletTest,RegionBrokerNameTest,SimpleMessageRendererTest,SslBrokerServiceTest,SslTransportBrokerTest,SslTransportFactoryTest,SslTransportVerifyHostNameTest,StompAutoNioSslTest,StompAutoSslAuthTest,StompNIOSSLTest,StompSslAuthTest,StompTest,TwoSecureBrokerRequestReplyTest,VMTransportFactoryTest,ViewUtilsTest,WireFormatInfoTest -Dsurefire.failIfNoSpecifiedTests=false -DfailIfNoTests=false -Dmaven.test.failure.ignore=true clean test
-  runtime: openjdk version 1.8.0_382, Apache Maven 3.5.4
-  report: activemq-client-5.14.5.1-backpatch-00014-tests.zip
-  report_sha256: 7b3ef163bf8f265eb842d9b536136bf0be14203d5ef27a711b5a4aa1e4aeae81
+  runtime: openjdk version 1.8.0_512, Apache Maven 3.5.4
+  report: activemq-client-5.14.5.1-backpatch-00015-tests.zip
+  report_sha256: 3cea493854868ac5bd1f2809ed6448af4279b1bcf8b6156bf37a14ff08823028
   result: pass
-  note: "1661 tests at the patch commit, 27 of them skipped by the suite, 0 failed, 0 errors. The suite ran in Docker (azul/zulu-openjdk:8) with Maven 3.5.4. Deployed with the backpatch Maven extension built from commit 7e8c6f2fea (branch fix/extension-test-jar-resolution), which resolves a reactor module's tests jar from the reactor. Accepted for CVE-2026-54475 (2026-11-12) and not part of this run: RequestReplyNoAdvisoryNetworkTest#testNonAdvisoryNetworkRequestReply, #testNonAdvisoryNetworkRequestReplyXmlConfig and #testNonAdvisoryNetworkRequestReplyWithPIM fail, because a network bridge without advisories is refused on another connection's temporary queue, and AMQ3274Test#run fails intermittently; all four pass at the baseline."
+  note: "1665 tests at the patch commit, 27 of them skipped by the suite, 0 failed, 0 errors. The suite ran in Docker (azul/zulu-openjdk:8) with Maven 3.5.4, again on 2026-11-19 under the per-counter rule: this release's own CVE test classes, those of CVEs fixed at earlier counters, and the line's test classes that no CVE names; no later CVE's classes. Deployed with the backpatch Maven extension built from commit 7e8c6f2fea (branch fix/extension-test-jar-resolution), which resolves a reactor module's tests jar at its built version (from the local repository, installed earlier in the same deploy run). That fix merged as a42af2ae (PR 200) with a guard for shaded members; for this line it gives identical deployed poms, because no deployed pom has a non-test classifier or test-jar dependency on a reactor module (checked over 00001 to 00014's 210 poms and activemq-5.16's 140), so the whole line stays on the 7e8c6f2fea build. Accepted for CVE-2026-54475 (2026-11-12) and not part of this run: RequestReplyNoAdvisoryNetworkTest#testNonAdvisoryNetworkRequestReply, #testNonAdvisoryNetworkRequestReplyXmlConfig and #testNonAdvisoryNetworkRequestReplyWithPIM fail, because a network bridge without advisories is refused on another connection's temporary queue, and AMQ3274Test#run fails intermittently; all four pass at the baseline."
