@@ -68,6 +68,11 @@ public class ManagementContext implements Service {
      */
     public static final String DEFAULT_DOMAIN = "org.apache.activemq";
 
+    /**
+     * Default registry lookup name
+     */
+    public static final String DEFAULT_LOOKUP_NAME = "jmxrmi";
+
     static {
         String option = Boolean.TRUE.toString();
         try {
@@ -93,6 +98,7 @@ public class ManagementContext implements Service {
     private Map<String, ?> environment;
     private int rmiServerPort;
     private String connectorPath = "/jmxrmi";
+    private String lookupName = DEFAULT_LOOKUP_NAME;
     private final AtomicBoolean started = new AtomicBoolean(false);
     private final AtomicBoolean connectorStarting = new AtomicBoolean(false);
     private JMXConnectorServer connectorServer;
@@ -596,6 +602,12 @@ public class ManagementContext implements Service {
 
     public void setConnectorPath(String connectorPath) {
         this.connectorPath = connectorPath;
+
+        if (connectorPath == null || connectorPath.length() == 0) {
+            this.lookupName = DEFAULT_LOOKUP_NAME;
+        } else {
+            this.lookupName = connectorPath.replaceAll("^/+", "").replaceAll("/+$", "");
+        }
     }
 
     public int getConnectorPort() {
@@ -683,16 +695,15 @@ public class ManagementContext implements Service {
      */
     @SuppressWarnings("restriction")
     private class JmxRegistry extends sun.rmi.registry.RegistryImpl {
-        public static final String LOOKUP_NAME = "jmxrmi";
+
 
         public JmxRegistry(int port) throws RemoteException {
             super(port);
         }
 
         @Override
-
         public Remote lookup(String s) throws RemoteException, NotBoundException {
-            return LOOKUP_NAME.equals(s) ? serverStub : null;
+            return lookupName.equals(s) ? serverStub : null;
         }
 
         @Override
@@ -709,7 +720,7 @@ public class ManagementContext implements Service {
 
         @Override
         public String[] list() throws RemoteException {
-            return new String[] {LOOKUP_NAME};
+            return new String[] {lookupName};
         }
     }
 }
